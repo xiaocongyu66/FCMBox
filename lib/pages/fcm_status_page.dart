@@ -15,14 +15,25 @@ class FcmStatusPage extends StatefulWidget {
 }
 
 class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserver {
-  final bool _isGoogleServiceEnabled = true; // Assume true for now
+  bool _isGoogleServiceEnabled = false;
+  bool _googleServiceChecked = false;
   bool _isVpnUsed = false;
   String _vpnName = '';
   
   bool _isConnected = false;
   String _host = 'Loading...';
   String _port = 'Unknown';
-  String _fcmToken = 'Loading...';
+  _FcmTokenState _tokenState = _FcmTokenState.loading;
+  String _fcmToken = '';
+  String _fcmTokenError = '';
+
+  bool _diagnosticsLoading = true;
+  bool _diagnosticsAvailable = false;
+  String _diagnosticsSummary = '';
+  String _diagnosticsRaw = '';
+  bool _diagnosticsFetching = false;
+  DateTime? _lastDiagnosticsFetch;
+  DateTime? _lastGoogleServiceCheck;
 
   Timer? _timer;
 
@@ -64,6 +75,9 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
   }
 
   Future<void> _fetchStatus() async {
+    _checkGooglePlayServices();
+    _fetchDiagnostics();
+
     // 1. Check VPN
     try {
       final interfaces = await NetworkInterface.list(
@@ -118,13 +132,20 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
       String? token = await FirebaseMessaging.instance.getToken();
       if (mounted) {
         setState(() {
-          _fcmToken = token ?? 'Failed to get token';
+          if (token == null || token.isEmpty) {
+            _tokenState = _FcmTokenState.failed;
+            _fcmToken = '';
+          } else {
+            _tokenState = _FcmTokenState.success;
+            _fcmToken = token;
+          }
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _fcmToken = 'Error: $e';
+          _tokenState = _FcmTokenState.error;
+          _fcmTokenError = e.toString();
         });
       }
     }
@@ -241,12 +262,163 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
 
   void _copyToClipboard(String text, String label) {
     Clipboard.setData(ClipboardData(text: text));
-    Fluttertoast.showToast(msg: '$label copied to clipboard');
+    final tr = AppLocalizations.of(context);
+    Fluttertoast.showToast(
+      msg: tr?.translate('copied_to_clipboard') ?? '$label copied to clipboard',
+    );
+  }
+
+  Future<void> _checkGooglePlayServices() async {
+    if (!Platform.isAndroid) {
+      if (mounted) {
+        setState(() {
+          _isGoogleServiceEnabled = false;
+          _googleServiceChecked = true;
+        });
+      }
+      return;
+    }
+
+    final now = DateTime.now();
+    if (_lastGoogleServiceCheck != null &&
+        now.difference(_lastGoogleServiceCheck!) < const Duration(seconds: 15)) {
+      return;
+    }
+    _lastGoogleServiceCheck = now;
+
+    try {
+      final result = await Process.run(
+        'pm',
+        ['list', 'packages', 'com.google.android.gms'],
+      );
+      if (mounted) {
+        setState(() {
+          _isGoogleServiceEnabled =
+              result.exitCode == 0 && result.stdout.toString().contains('com.google.android.gms');
+          _googleServiceChecked = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isGoogleServiceEnabled = false;
+          _googleServiceChecked = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchDiagnostics() async {
+    if (!Platform.isAndroid) {
+      if (mounted) {
+        setState(() {
+          _diagnosticsLoading = false;
+          _diagnosticsAvailable = false;
+          _diagnosticsSummary = '';
+          _diagnosticsRaw = '';
+        });
+      }
+      return;
+    }
+
+    if (_diagnosticsFetching) return;
+
+    final now = DateTime.now();
+    if (_lastDiagnosticsFetch != null &&
+        now.difference(_lastDiagnosticsFetch!) < const Duration(seconds: 15)) {
+      return;
+    }
+    _lastDiagnosticsFetch = now;
+    _diagnosticsFetching = true;
+
+    try {
+      final result = await Process.run('dumpsys', ['gcm']);
+      final output = result.exitCode == 0
+          ? result.stdout.toString()
+          : result.stderr.toString();
+      final summary = _summarizeDiagnostics(output);
+      if (mounted) {
+        setState(() {
+          _diagnosticsLoading = false;
+          _diagnosticsAvailable = output.trim().isNotEmpty;
+          _diagnosticsSummary = summary;
+          _diagnosticsRaw = output.trim();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _diagnosticsLoading = false;
+          _diagnosticsAvailable = false;
+          _diagnosticsSummary = '';
+          _diagnosticsRaw = e.toString();
+        });
+      }
+    } finally {
+      _diagnosticsFetching = false;
+    }
+  }
+
+  String _summarizeDiagnostics(String output) {
+    final lines = output
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    if (lines.isEmpty) return '';
+
+    final picked = <String>[];
+    for (final line in lines) {
+      if (picked.length >= 3) break;
+      if (line.contains(':') && line.length <= 80) {
+        picked.add(line);
+      }
+    }
+    if (picked.isNotEmpty) {
+      return picked.join(' | ');
+    }
+    return lines.first;
+  }
+
+  void _showDiagnosticsDialog() {
+    final tr = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr?.translate('fcm_diagnostics') ?? 'FCM Diagnostics'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SelectableText(
+            _diagnosticsRaw.isNotEmpty
+                ? _diagnosticsRaw
+                : (tr?.translate('fcm_diagnostics_unavailable') ??
+                    'Diagnostics unavailable'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _copyToClipboard(
+                _diagnosticsRaw,
+                tr?.translate('fcm_diagnostics') ?? 'FCM Diagnostics',
+              );
+            },
+            child: Text(tr?.translate('copy') ?? 'Copy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(tr?.translate('close') ?? 'Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final tr = AppLocalizations.of(context);
+    final noneText = tr?.translate('fcm_none') ?? 'None';
+    final loadingText = tr?.translate('fcm_loading') ?? 'Loading...';
     
     return Scaffold(
       appBar: AppBar(
@@ -254,7 +426,7 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
         actions: [
           IconButton(
             icon: const Icon(Icons.open_in_new),
-            tooltip: 'Open System FCM Diagnostics',
+            tooltip: tr?.translate('fcm_open_diagnostics') ?? 'Open System FCM Diagnostics',
             onPressed: () {
               try {
                 if (Platform.isAndroid) {
@@ -264,7 +436,10 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
                     componentName: 'com.google.android.gms.gcm.GcmDiagnostics',
                   );
                   intent.launch().catchError((e) {
-                     Fluttertoast.showToast(msg: 'Failed to open system diagnostics');
+                     Fluttertoast.showToast(
+                       msg: tr?.translate('fcm_open_diagnostics_failed') ??
+                           'Failed to open system diagnostics',
+                     );
                   });
                 }
               } catch (_) {}
@@ -286,15 +461,40 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
           ),
           ListTile(
             title: Text(tr?.translate('fcm_google_service') ?? 'Google Service'),
-            subtitle: Text(_isGoogleServiceEnabled 
-              ? (tr?.translate('fcm_enabled') ?? 'Enabled') 
-              : (tr?.translate('fcm_disabled') ?? 'Disabled')),
+            subtitle: Text(!_googleServiceChecked
+                ? loadingText
+                : (_isGoogleServiceEnabled
+                    ? (tr?.translate('fcm_enabled') ?? 'Enabled')
+                    : (tr?.translate('fcm_disabled') ?? 'Disabled'))),
           ),
           ListTile(
             title: Text(tr?.translate('fcm_vpn') ?? 'VPN'),
             subtitle: Text(_isVpnUsed 
               ? '${tr?.translate('fcm_yes') ?? 'Yes'} ($_vpnName)' 
-              : 'None'),
+              : noneText),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              tr?.translate('fcm_system_diagnostics') ?? 'System Diagnostics',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+          ),
+          ListTile(
+            title: Text(tr?.translate('fcm_diagnostics') ?? 'FCM Diagnostics'),
+            subtitle: Text(_diagnosticsLoading
+                ? loadingText
+                : (_diagnosticsAvailable
+                    ? (_diagnosticsSummary.isNotEmpty
+                        ? _diagnosticsSummary
+                        : (tr?.translate('fcm_diagnostics_tap') ??
+                            'Tap to view'))
+                    : (tr?.translate('fcm_diagnostics_unavailable') ??
+                        'Diagnostics unavailable'))),
+            onTap: _diagnosticsAvailable ? _showDiagnosticsDialog : null,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -314,25 +514,49 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
           ),
           ListTile(
             title: Text(tr?.translate('fcm_host') ?? 'Host'),
-            subtitle: Text(_isConnected ? _host : 'None'),
+            subtitle: Text(_isConnected ? _host : noneText),
             onLongPress: _isConnected ? () => _copyToClipboard(_host, tr?.translate('fcm_host') ?? 'Host') : null,
           ),
           ListTile(
             title: Text(tr?.translate('fcm_port') ?? 'Port'),
-            subtitle: Text(_isConnected ? _port : 'None'),
+            subtitle: Text(_isConnected ? _port : noneText),
           ),
           ListTile(
             title: Text(tr?.translate('fcm_token') ?? 'FCM Token'),
             subtitle: Text(
-              _fcmToken,
+              _buildTokenStatusText(tr),
               style: const TextStyle(fontSize: 12),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            onLongPress: () => _copyToClipboard(_fcmToken, tr?.translate('fcm_token') ?? 'FCM Token'),
+            onLongPress: () => _copyToClipboard(
+              _buildTokenStatusText(tr),
+              tr?.translate('fcm_token') ?? 'FCM Token',
+            ),
           ),
         ],
       ),
     );
   }
+
+  String _buildTokenStatusText(AppLocalizations? tr) {
+    switch (_tokenState) {
+      case _FcmTokenState.loading:
+        return tr?.translate('fcm_loading') ?? 'Loading...';
+      case _FcmTokenState.success:
+        return _fcmToken;
+      case _FcmTokenState.failed:
+        return tr?.translate('fcm_token_failed') ?? 'Failed to get token';
+      case _FcmTokenState.error:
+        final prefix = tr?.translate('fcm_error_prefix') ?? 'Error';
+        return '$prefix: $_fcmTokenError';
+    }
+  }
+}
+
+enum _FcmTokenState {
+  loading,
+  success,
+  failed,
+  error,
 }
