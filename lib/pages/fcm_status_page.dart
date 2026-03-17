@@ -13,7 +13,7 @@ class FcmStatusPage extends StatefulWidget {
 }
 
 class _FcmStatusPageState extends State<FcmStatusPage> {
-  bool _isGoogleServiceEnabled = true; // Assume true for now
+  final bool _isGoogleServiceEnabled = true; // Assume true for now
   bool _isVpnUsed = false;
   String _vpnName = '';
   

@@ -22,7 +22,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:animations/animations.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -1212,7 +1211,7 @@ class _NoteCardNew extends StatelessWidget {
   final Note note;
   final VoidCallback onTap;
 
-  const _NoteCardNew({required this.note, required this.onTap});
+  const _NoteCardNew({super.key, required this.note, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
