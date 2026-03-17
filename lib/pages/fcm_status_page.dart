@@ -18,8 +18,7 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
   bool _isGoogleServiceEnabled = false;
   bool _googleServiceChecked = false;
   bool _isVpnUsed = false;
-  String _vpnName = '';
-  
+
   bool _isConnected = false;
   String _host = 'Loading...';
   String _port = 'Unknown';
@@ -85,44 +84,19 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
         type: InternetAddressType.any,
       );
       bool hasVpn = false;
-      String vpnInterface = '';
       for (var interface in interfaces) {
         if (interface.name.contains('tun') || 
             interface.name.contains('ppp') || 
             interface.name.contains('wg') || 
             interface.name.contains('tap')) {
           hasVpn = true;
-          vpnInterface = interface.name;
           break;
         }
-      }
-      
-      String vpnDisplayName = vpnInterface;
-      if (hasVpn && Platform.isAndroid) {
-         try {
-           final result = await Process.run('dumpsys', ['connectivity']);
-           if (result.exitCode == 0) {
-             final output = result.stdout.toString();
-             final uidMatch = RegExp(r'ownerUid:\s*(\d+)').firstMatch(output);
-             if (uidMatch != null) {
-                final uid = uidMatch.group(1);
-                final pmResult = await Process.run('pm', ['list', 'packages', '--uid', uid!]);
-                if (pmResult.exitCode == 0) {
-                  final pmOutput = pmResult.stdout.toString();
-                  final pkgMatch = RegExp(r'package:([^\s]+)\s+uid:').firstMatch(pmOutput);
-                  if (pkgMatch != null) {
-                     vpnDisplayName = pkgMatch.group(1)!;
-                  }
-                }
-             }
-           }
-         } catch (_) {}
       }
 
       if (mounted) {
         setState(() {
           _isVpnUsed = hasVpn;
-          _vpnName = vpnDisplayName.isNotEmpty ? vpnDisplayName : 'Unknown';
         });
       }
     } catch (_) {}
@@ -469,9 +443,7 @@ class _FcmStatusPageState extends State<FcmStatusPage> with WidgetsBindingObserv
           ),
           ListTile(
             title: Text(tr?.translate('fcm_vpn') ?? 'VPN'),
-            subtitle: Text(_isVpnUsed 
-              ? '${tr?.translate('fcm_yes') ?? 'Yes'} ($_vpnName)' 
-              : noneText),
+            subtitle: Text(_isVpnUsed ? 'True' : 'False'),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
