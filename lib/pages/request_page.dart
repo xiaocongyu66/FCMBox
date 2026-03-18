@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:flutter_expandable_fab/flutter_expandable_fab.dart';
 import 'package:flutter_highlight/flutter_highlight.dart';
 import 'package:flutter_highlight/themes/atom-one-light.dart';
 import 'package:flutter_highlight/themes/atom-one-dark.dart';
@@ -22,6 +23,7 @@ class _RequestPageState extends State<RequestPage> {
   bool _isLoading = true;
   String _domainFilter = '';
   String _methodFilter = '';
+  final _key = GlobalKey<ExpandableFabState>();
 
   @override
   void initState() {
@@ -267,53 +269,91 @@ class _RequestPageState extends State<RequestPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            backgroundColor: Colors.transparent,
-            builder: (context) {
-              return Container(
-                margin: const EdgeInsets.only(bottom: 80, right: 16, left: 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    FloatingActionButton.extended(
-                      heroTag: 'fcm_template',
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _openComposer(useFcmTemplate: true);
-                      },
-                      icon: const Icon(Icons.cloud_upload_outlined),
-                      label: const Text('FCM Template'),
-                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                      elevation: 4,
-                    ),
-                    const SizedBox(height: 16),
-                    FloatingActionButton.extended(
-                      heroTag: 'blank_template',
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _openComposer();
-                      },
-                      icon: const Icon(Icons.insert_drive_file_outlined),
-                      label: const Text('Blank Template'),
-                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                      foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-                      elevation: 4,
+      floatingActionButtonLocation: ExpandableFab.location,
+      floatingActionButton: ExpandableFab(
+        key: _key,
+        type: ExpandableFabType.up,
+        distance: 70,
+        openButtonBuilder: RotateFloatingActionButtonBuilder(
+          child: const Icon(Icons.add),
+          fabSize: ExpandableFabSize.regular,
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+        ),
+        closeButtonBuilder: DefaultFloatingActionButtonBuilder(
+          child: const Icon(Icons.close),
+          fabSize: ExpandableFabSize.regular,
+          backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+          foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+        ),
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-              );
-            },
-          );
-        },
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
-        elevation: 3,
-        child: const Icon(Icons.add),
+                child: Text('Blank Template', style: TextStyle(fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface)),
+              ),
+              const SizedBox(width: 16),
+              FloatingActionButton.small(
+                heroTag: null,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
+                onPressed: () {
+                  final state = _key.currentState;
+                  if (state != null) {
+                    state.toggle();
+                  }
+                  _openComposer();
+                },
+                child: const Icon(Icons.insert_drive_file_outlined),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text('FCM Template', style: TextStyle(fontWeight: FontWeight.w500, color: Theme.of(context).colorScheme.onSurface)),
+              ),
+              const SizedBox(width: 16),
+              FloatingActionButton.small(
+                heroTag: null,
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
+                onPressed: () {
+                  final state = _key.currentState;
+                  if (state != null) {
+                    state.toggle();
+                  }
+                  _openComposer(useFcmTemplate: true);
+                },
+                child: const Icon(Icons.cloud_upload_outlined),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -806,6 +846,58 @@ class RequestDetailPage extends StatelessWidget {
 
   const RequestDetailPage({super.key, required this.record});
 
+  Widget _buildUrlTable(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Table(
+            border: TableBorder(
+              verticalInside: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            columnWidths: const {
+              0: IntrinsicColumnWidth(),
+              1: FlexColumnWidth(),
+            },
+            children: [
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: SelectableText(
+                      record.method,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _getMethodColor(record.method),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: SelectableText(
+                      record.url,
+                      style: const TextStyle(overflow: TextOverflow.ellipsis),
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeadersTable(BuildContext context) {
     Map<String, dynamic> headersMap = {};
     try {
@@ -855,12 +947,17 @@ class RequestDetailPage extends StatelessWidget {
                     padding: const EdgeInsets.all(12.0),
                     child: SelectableText(
                       e.key,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis),
+                      maxLines: 1,
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.all(12.0),
-                    child: SelectableText(e.value.toString()),
+                    child: SelectableText(
+                      e.value.toString(),
+                      style: const TextStyle(overflow: TextOverflow.ellipsis),
+                      maxLines: 1,
+                    ),
                   ),
                 ],
               );
@@ -891,31 +988,36 @@ class RequestDetailPage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
         ),
         child: isJson
-            ? HighlightView(
-                prettyJson,
-                language: 'json',
-                theme: Theme.of(context).brightness == Brightness.dark
-                    ? atomOneDarkTheme
-                    : atomOneLightTheme,
-                padding: EdgeInsets.zero,
-                textStyle: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 14,
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: HighlightView(
+                    prettyJson,
+                    language: 'json',
+                    theme: Theme.of(context).brightness == Brightness.dark
+                        ? atomOneDarkTheme
+                        : atomOneLightTheme,
+                    padding: const EdgeInsets.all(16.0),
+                    textStyle: const TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 14,
+                    ),
+                  ),
+            )
+            : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SelectableText(
+                  record.body,
+                  style: const TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 14,
+                  ),
                 ),
-              )
-            : SelectableText(
-                record.body,
-                style: const TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 14,
-                ),
-              ),
+            ),
       ),
     );
   }
@@ -953,16 +1055,7 @@ class RequestDetailPage extends StatelessWidget {
               ),
             ),
           ),
-          ListTile(
-            title: SelectableText(record.url),
-            subtitle: SelectableText(
-              record.method,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: _getMethodColor(record.method),
-              ),
-            ),
-          ),
+          _buildUrlTable(context),
           
           const Divider(height: 32),
 
