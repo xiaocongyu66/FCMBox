@@ -41,9 +41,7 @@ class _AboutPageState extends State<AboutPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          AppLocalizations.of(context)?.about ?? 'About',
-        ),
+        title: Text(AppLocalizations.of(context)?.about ?? 'About'),
       ),
       body: ListView(
         children: [
@@ -77,9 +75,7 @@ class _AboutPageState extends State<AboutPage> {
           ListTile(
             leading: const Icon(Icons.code),
             title: const Text('GitHub Repository'),
-            subtitle: const Text(
-              'https://docs.wepayto.win/application/fcmbox/',
-            ),
+            subtitle: const Text('https://github.com/XXXppp233/FCMBox'),
             onTap: () {
               _launchUrl('https://github.com/XXXppp233/FCMBox');
             },

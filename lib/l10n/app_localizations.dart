@@ -355,6 +355,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
+
+  /// No description provided for @request_api.
+  ///
+  /// In en, this message translates to:
+  /// **'Request API'**
+  String get request_api;
 }
 
 class _AppLocalizationsDelegate

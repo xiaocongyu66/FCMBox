@@ -136,4 +136,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get close => '关闭';
+
+  @override
+  String get request_api => '请求 API';
 }

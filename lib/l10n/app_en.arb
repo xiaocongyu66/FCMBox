@@ -41,5 +41,6 @@
   "fcm_open_diagnostics_failed": "Failed to open system diagnostics",
   "copied_to_clipboard": "Copied to clipboard",
   "copy": "Copy",
-  "close": "Close"
+  "close": "Close",
+  "request_api": "Request API"
 }

@@ -6,6 +6,7 @@ import 'package:fcm_box/models/note.dart';
 import 'package:fcm_box/pages/settings_page.dart';
 import 'package:fcm_box/pages/about_page.dart';
 import 'package:fcm_box/pages/cloud_page.dart';
+import 'package:fcm_box/pages/request_page.dart';
 import 'package:fcm_box/pages/json_viewer_page.dart';
 import 'package:fcm_box/delegates/note_search_delegate.dart';
 import 'package:fcm_box/theme_settings.dart';
@@ -916,6 +917,19 @@ class _MyHomePageState extends State<MyHomePage>
                 } catch (e) {
                   Fluttertoast.showToast(msg: '$errorMsg: $e');
                 }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.api),
+              title: Text(
+                AppLocalizations.of(context)?.request_api ?? 'Request API',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const RequestPage()),
+                );
               },
             ),
             ListTile(

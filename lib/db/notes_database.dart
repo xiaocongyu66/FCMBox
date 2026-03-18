@@ -3,6 +3,7 @@ import 'package:path/path.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 import '../models/note.dart';
+import '../models/request_record.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -22,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -39,24 +40,59 @@ CREATE TABLE notes (
 )
     ''');
     _createImageCacheTable(db);
+    _createRequestsTable(db);
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
       await _createImageCacheTable(db);
-    } else if (oldVersion < 3) {
+    } 
+    if (oldVersion < 3) {
       await db.execute('DROP TABLE IF EXISTS image_cache');
       await _createImageCacheTable(db);
+    }
+    if (oldVersion < 4) {
+      await _createRequestsTable(db);
     }
   }
 
   Future<void> _createImageCacheTable(Database db) async {
     await db.execute('''
-CREATE TABLE image_cache (
+CREATE TABLE IF NOT EXISTS image_cache (
   url TEXT PRIMARY KEY,
   data BLOB NOT NULL
 )
     ''');
+  }
+
+  Future<void> _createRequestsTable(Database db) async {
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS requests (
+  timestamp INTEGER PRIMARY KEY,
+  url TEXT NOT NULL,
+  method TEXT NOT NULL,
+  headers TEXT NOT NULL,
+  body TEXT NOT NULL
+)
+    ''');
+  }
+
+  Future<int> insertRequest(RequestRecord record) async {
+    final db = await instance.database;
+    return await db.insert('requests', record.toJson());
+  }
+
+  Future<List<RequestRecord>> readAllRequests() async {
+    final db = await instance.database;
+    final orderBy = 'timestamp DESC';
+    final result = await db.query('requests', orderBy: orderBy);
+
+    return result.map((json) => RequestRecord.fromJson(json)).toList();
+  }
+
+  Future<void> deleteRequest(int timestamp) async {
+    final db = await instance.database;
+    await db.delete('requests', where: 'timestamp = ?', whereArgs: [timestamp]);
   }
 
   Future<void> saveImage(String url, Uint8List data) async {
