@@ -3,7 +3,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:flutter_highlight/flutter_highlight.dart';
+import 'package:flutter_highlight/themes/atom-one-light.dart';
+import 'package:flutter_highlight/themes/atom-one-dark.dart';
 import '../models/request_record.dart';
 import '../db/notes_database.dart';
 import '../l10n/app_localizations.dart';
@@ -40,13 +42,17 @@ class _RequestPageState extends State<RequestPage> {
 
   List<RequestRecord> get _filteredRequests {
     return _requests.where((r) {
-      bool matchesDomain = _domainFilter.isEmpty || r.url.contains(_domainFilter);
+      bool matchesDomain =
+          _domainFilter.isEmpty || r.url.contains(_domainFilter);
       bool matchesMethod = _methodFilter.isEmpty || r.method == _methodFilter;
       return matchesDomain && matchesMethod;
     }).toList();
   }
 
-  void _openComposer({bool useFcmTemplate = false, RequestRecord? template}) async {
+  void _openComposer({
+    bool useFcmTemplate = false,
+    RequestRecord? template,
+  }) async {
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -60,13 +66,16 @@ class _RequestPageState extends State<RequestPage> {
   }
 
   Set<String> get _domains {
-    return _requests.map((r) {
-      try {
-        return Uri.parse(r.url).host;
-      } catch (_) {
-        return '';
-      }
-    }).where((s) => s.isNotEmpty).toSet();
+    return _requests
+        .map((r) {
+          try {
+            return Uri.parse(r.url).host;
+          } catch (_) {
+            return '';
+          }
+        })
+        .where((s) => s.isNotEmpty)
+        .toSet();
   }
 
   Set<String> get _methods {
@@ -83,11 +92,16 @@ class _RequestPageState extends State<RequestPage> {
         children: [
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: Row(
               children: [
                 FilterChip(
-                  label: Text(_domainFilter.isEmpty ? 'All Domains' : _domainFilter),
+                  label: Text(
+                    _domainFilter.isEmpty ? 'All Domains' : _domainFilter,
+                  ),
                   avatar: const Icon(Icons.public, size: 18),
                   selected: _domainFilter.isNotEmpty,
                   onSelected: (_) {
@@ -106,13 +120,15 @@ class _RequestPageState extends State<RequestPage> {
                                   Navigator.pop(context);
                                 },
                               ),
-                              ..._domains.map((d) => ListTile(
-                                title: Text(d),
-                                onTap: () {
-                                  setState(() => _domainFilter = d);
-                                  Navigator.pop(context);
-                                },
-                              )),
+                              ..._domains.map(
+                                (d) => ListTile(
+                                  title: Text(d),
+                                  onTap: () {
+                                    setState(() => _domainFilter = d);
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -122,7 +138,9 @@ class _RequestPageState extends State<RequestPage> {
                 ),
                 const SizedBox(width: 8),
                 FilterChip(
-                  label: Text(_methodFilter.isEmpty ? 'All Methods' : _methodFilter),
+                  label: Text(
+                    _methodFilter.isEmpty ? 'All Methods' : _methodFilter,
+                  ),
                   avatar: const Icon(Icons.http, size: 18),
                   selected: _methodFilter.isNotEmpty,
                   onSelected: (_) {
@@ -141,13 +159,15 @@ class _RequestPageState extends State<RequestPage> {
                                   Navigator.pop(context);
                                 },
                               ),
-                              ..._methods.map((m) => ListTile(
-                                title: Text(m),
-                                onTap: () {
-                                  setState(() => _methodFilter = m);
-                                  Navigator.pop(context);
-                                },
-                              )),
+                              ..._methods.map(
+                                (m) => ListTile(
+                                  title: Text(m),
+                                  onTap: () {
+                                    setState(() => _methodFilter = m);
+                                    Navigator.pop(context);
+                                  },
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -165,14 +185,21 @@ class _RequestPageState extends State<RequestPage> {
                     itemCount: _filteredRequests.length,
                     itemBuilder: (context, index) {
                       final record = _filteredRequests[index];
-                      final date = DateTime.fromMillisecondsSinceEpoch(record.timestamp);
+                      final date = DateTime.fromMillisecondsSinceEpoch(
+                        record.timestamp,
+                      );
                       return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         elevation: 0,
                         color: Theme.of(context).cardColor,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                          side: BorderSide(
+                            color: Colors.grey.withValues(alpha: 0.2),
+                          ),
                         ),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(12),
@@ -180,7 +207,8 @@ class _RequestPageState extends State<RequestPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => RequestDetailPage(record: record),
+                                builder: (context) =>
+                                    RequestDetailPage(record: record),
                               ),
                             );
                           },
@@ -188,7 +216,10 @@ class _RequestPageState extends State<RequestPage> {
                             _openComposer(template: record);
                           },
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                             child: Row(
                               children: [
                                 Text(
@@ -202,20 +233,26 @@ class _RequestPageState extends State<RequestPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         record.url,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                        ),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         date.toString().split('.')[0],
-                                        style: Theme.of(context).textTheme.bodySmall,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
                                       ),
                                     ],
                                   ),
@@ -230,61 +267,71 @@ class _RequestPageState extends State<RequestPage> {
           ),
         ],
       ),
-      floatingActionButton: SpeedDial(
-        icon: Icons.add,
-        activeIcon: Icons.close,
-        spacing: 12,
-        spaceBetweenChildren: 8,
-        overlayColor: Theme.of(context).scaffoldBackgroundColor,
-        overlayOpacity: 0.7,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            backgroundColor: Colors.transparent,
+            builder: (context) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 80, right: 16, left: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    FloatingActionButton.extended(
+                      heroTag: 'fcm_template',
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _openComposer(useFcmTemplate: true);
+                      },
+                      icon: const Icon(Icons.cloud_upload_outlined),
+                      label: const Text('FCM Template'),
+                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                      elevation: 4,
+                    ),
+                    const SizedBox(height: 16),
+                    FloatingActionButton.extended(
+                      heroTag: 'blank_template',
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _openComposer();
+                      },
+                      icon: const Icon(Icons.insert_drive_file_outlined),
+                      label: const Text('Blank Template'),
+                      backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                      foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+                      elevation: 4,
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
         backgroundColor: Theme.of(context).colorScheme.primaryContainer,
         foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
         elevation: 3,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        children: [
-          SpeedDialChild(
-            elevation: 1,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
-            child: const Icon(Icons.insert_drive_file_outlined),
-            label: 'Blank Template',
-            labelStyle: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            labelBackgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-            labelShadow: [],
-            onTap: () => _openComposer(),
-          ),
-          SpeedDialChild(
-            elevation: 1,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
-            child: const Icon(Icons.cloud_upload_outlined),
-            label: 'FCM Template',
-            labelStyle: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            labelBackgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
-            labelShadow: [],
-            onTap: () => _openComposer(useFcmTemplate: true),
-          ),
-        ],
+        child: const Icon(Icons.add),
       ),
     );
   }
 
   Color _getMethodColor(String method) {
     switch (method.toUpperCase()) {
-      case 'GET': return Colors.green;
-      case 'POST': return Colors.orange;
-      case 'PUT': return Colors.blue;
-      case 'DELETE': return Colors.red;
-      case 'PATCH': return Colors.purple;
-      default: return Colors.grey;
+      case 'GET':
+        return Colors.green;
+      case 'POST':
+        return Colors.orange;
+      case 'PUT':
+        return Colors.blue;
+      case 'DELETE':
+        return Colors.red;
+      case 'PATCH':
+        return Colors.purple;
+      default:
+        return Colors.grey;
     }
   }
 }
@@ -293,7 +340,11 @@ class RequestComposerPage extends StatefulWidget {
   final bool useFcmTemplate;
   final RequestRecord? template;
 
-  const RequestComposerPage({super.key, this.useFcmTemplate = false, this.template});
+  const RequestComposerPage({
+    super.key,
+    this.useFcmTemplate = false,
+    this.template,
+  });
 
   @override
   State<RequestComposerPage> createState() => _RequestComposerPageState();
@@ -335,9 +386,11 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
       _method = widget.template!.method;
       _urlController.text = widget.template!.url;
       _bodyController.text = widget.template!.body;
-      
+
       try {
-        final Map<String, dynamic> headersMap = json.decode(widget.template!.headers);
+        final Map<String, dynamic> headersMap = json.decode(
+          widget.template!.headers,
+        );
         for (var entry in headersMap.entries) {
           _headers.add({
             'key': TextEditingController(text: entry.key),
@@ -360,7 +413,7 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
           'value': TextEditingController(text: authKey),
         });
       }
-      
+
       _bodyController.text = '''{
   "action": "message",
   "service": "FCMBox Request",
@@ -397,7 +450,10 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
   }
 
   void _ensureEmptyHeaderRow() {
-    bool shouldAdd = _headers.isEmpty || _headers.last['key']!.text.isNotEmpty || _headers.last['value']!.text.isNotEmpty;
+    bool shouldAdd =
+        _headers.isEmpty ||
+        _headers.last['key']!.text.isNotEmpty ||
+        _headers.last['value']!.text.isNotEmpty;
     if (shouldAdd) {
       if (mounted) {
         setState(() {
@@ -430,7 +486,7 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
     try {
       final urlStr = _urlController.text.trim();
       if (urlStr.isEmpty) throw Exception('URL cannot be empty');
-      
+
       final uri = Uri.parse(urlStr);
       final headersMap = _getHeadersMap();
       http.Response response;
@@ -440,16 +496,32 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
           response = await http.get(uri, headers: headersMap);
           break;
         case 'POST':
-          response = await http.post(uri, headers: headersMap, body: _bodyController.text);
+          response = await http.post(
+            uri,
+            headers: headersMap,
+            body: _bodyController.text,
+          );
           break;
         case 'PUT':
-          response = await http.put(uri, headers: headersMap, body: _bodyController.text);
+          response = await http.put(
+            uri,
+            headers: headersMap,
+            body: _bodyController.text,
+          );
           break;
         case 'DELETE':
-          response = await http.delete(uri, headers: headersMap, body: _bodyController.text);
+          response = await http.delete(
+            uri,
+            headers: headersMap,
+            body: _bodyController.text,
+          );
           break;
         case 'PATCH':
-          response = await http.patch(uri, headers: headersMap, body: _bodyController.text);
+          response = await http.patch(
+            uri,
+            headers: headersMap,
+            body: _bodyController.text,
+          );
           break;
         default:
           throw Exception('Unsupported method');
@@ -462,9 +534,9 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
         headers: json.encode(headersMap),
         body: _bodyController.text,
       );
-      
+
       await DatabaseHelper.instance.insertRequest(record);
-      
+
       if (!mounted) return;
       Fluttertoast.showToast(msg: 'Response: ${response.statusCode}');
       Navigator.pop(context);
@@ -482,15 +554,18 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
         title: const Text('New Request'),
         actions: [
           if (_isSending)
-            const Center(child: Padding(
-              padding: EdgeInsets.only(right: 16.0),
-              child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
-            ))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.only(right: 16.0),
+                child: SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            )
           else
-            IconButton(
-              icon: const Icon(Icons.send),
-              onPressed: _sendRequest,
-            ),
+            IconButton(icon: const Icon(Icons.send), onPressed: _sendRequest),
         ],
       ),
       body: ListView(
@@ -498,14 +573,19 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
         children: [
           // URL Section
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: TextField(
               controller: _urlController,
               decoration: InputDecoration(
                 labelText: 'URL',
                 hintText: 'https://api.example.com',
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                fillColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -513,17 +593,22 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
               ),
             ),
           ),
-          
+
           // Method Section
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: DropdownMenu<String>(
               initialSelection: _method,
               label: const Text('Method'),
               expandedInsets: EdgeInsets.zero,
               inputDecorationTheme: InputDecorationTheme(
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                fillColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -532,30 +617,37 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
               onSelected: (v) {
                 if (v != null) setState(() => _method = v);
               },
-              dropdownMenuEntries: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].map((m) {
-                return DropdownMenuEntry(value: m, label: m);
-              }).toList(),
+              dropdownMenuEntries: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+                  .map((m) {
+                    return DropdownMenuEntry(value: m, label: m);
+                  })
+                  .toList(),
             ),
           ),
-          
+
           const Divider(height: 32),
-          
+
           // Headers Section
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
               'Headers',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _headers.length,
             itemBuilder: (context, index) {
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 4.0,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -566,37 +658,49 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
                             return const Iterable<String>.empty();
                           }
                           return _commonHeaders.where((String option) {
-                            return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                            return option.toLowerCase().contains(
+                              textEditingValue.text.toLowerCase(),
+                            );
                           });
                         },
                         onSelected: (String selection) {
                           _headers[index]['key']!.text = selection;
                           _ensureEmptyHeaderRow();
                         },
-                        fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                          if (textEditingController.text != _headers[index]['key']!.text) {
-                            textEditingController.text = _headers[index]['key']!.text;
-                          }
-                          
-                          return TextField(
-                            controller: textEditingController,
-                            focusNode: focusNode,
-                            onChanged: (val) {
-                              _headers[index]['key']!.text = val;
-                              _ensureEmptyHeaderRow();
+                        fieldViewBuilder:
+                            (
+                              context,
+                              textEditingController,
+                              focusNode,
+                              onFieldSubmitted,
+                            ) {
+                              if (textEditingController.text !=
+                                  _headers[index]['key']!.text) {
+                                textEditingController.text =
+                                    _headers[index]['key']!.text;
+                              }
+
+                              return TextField(
+                                controller: textEditingController,
+                                focusNode: focusNode,
+                                onChanged: (val) {
+                                  _headers[index]['key']!.text = val;
+                                  _ensureEmptyHeaderRow();
+                                },
+                                decoration: InputDecoration(
+                                  hintText: 'Key',
+                                  isDense: true,
+                                  filled: true,
+                                  fillColor: Theme.of(
+                                    context,
+                                  ).colorScheme.surfaceContainerHighest,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              );
                             },
-                            decoration: InputDecoration(
-                              hintText: 'Key',
-                              isDense: true,
-                              filled: true,
-                              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          );
-                        },
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -608,7 +712,9 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
                           hintText: 'Value',
                           isDense: true,
                           filled: true,
-                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          fillColor: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHighest,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide.none,
@@ -619,37 +725,47 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close, size: 20),
-                      onPressed: index == _headers.length - 1 && _headers[index]['key']!.text.isEmpty && _headers[index]['value']!.text.isEmpty 
-                        ? null 
-                        : () {
-                            setState(() {
-                              _headers.removeAt(index);
-                              _ensureEmptyHeaderRow();
-                            });
-                          },
-                    )
+                      onPressed:
+                          index == _headers.length - 1 &&
+                              _headers[index]['key']!.text.isEmpty &&
+                              _headers[index]['value']!.text.isEmpty
+                          ? null
+                          : () {
+                              setState(() {
+                                _headers.removeAt(index);
+                                _ensureEmptyHeaderRow();
+                              });
+                            },
+                    ),
                   ],
                 ),
               );
             },
           ),
-          
+
           const Divider(height: 32),
-          
+
           // Body Section
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Body', style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  'Body',
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 SegmentedButton<bool>(
                   segments: const [
                     ButtonSegment(value: false, label: Text('RAW')),
                     ButtonSegment(value: true, label: Text('JSON')),
                   ],
                   selected: {_isJsonMode},
-                  onSelectionChanged: (set) => setState(() => _isJsonMode = set.first),
+                  onSelectionChanged: (set) =>
+                      setState(() => _isJsonMode = set.first),
                   showSelectedIcon: false,
                   style: SegmentedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -658,7 +774,6 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: TextField(
@@ -668,7 +783,9 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
               decoration: InputDecoration(
                 hintText: 'Request Payload',
                 filled: true,
-                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                fillColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -689,40 +806,134 @@ class RequestDetailPage extends StatelessWidget {
 
   const RequestDetailPage({super.key, required this.record});
 
-  Widget _buildHeadersPreview(BuildContext context) {
+  Widget _buildHeadersTable(BuildContext context) {
+    Map<String, dynamic> headersMap = {};
     try {
-      final Map<String, dynamic> headersMap = json.decode(record.headers);
-      if (headersMap.isEmpty) {
-        return const Text('(Empty)', style: TextStyle(color: Colors.grey));
-      }
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: headersMap.entries.map((e) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 4.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${e.key}: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-                Expanded(child: SelectableText('${e.value}')),
-              ],
-            ),
-          );
-        }).toList(),
-      );
+      headersMap = json.decode(record.headers);
     } catch (_) {
-      return SelectableText(record.headers);
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: SelectableText(record.headers),
+      );
     }
+
+    if (headersMap.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        child: Text('(Empty)', style: TextStyle(color: Colors.grey)),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Table(
+            border: TableBorder(
+              horizontalInside: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+              verticalInside: BorderSide(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            columnWidths: const {
+              0: IntrinsicColumnWidth(),
+              1: FlexColumnWidth(),
+            },
+            children: headersMap.entries.map((e) {
+              return TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: SelectableText(
+                      e.key,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: SelectableText(e.value.toString()),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBodySection(BuildContext context) {
+    if (record.body.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.0),
+        child: Text('(Empty)', style: TextStyle(color: Colors.grey)),
+      );
+    }
+
+    String prettyJson = record.body;
+    bool isJson = false;
+    try {
+      final parsed = json.decode(record.body);
+      prettyJson = const JsonEncoder.withIndent('  ').convert(parsed);
+      isJson = true;
+    } catch (_) {}
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: isJson
+            ? HighlightView(
+                prettyJson,
+                language: 'json',
+                theme: Theme.of(context).brightness == Brightness.dark
+                    ? atomOneDarkTheme
+                    : atomOneLightTheme,
+                padding: EdgeInsets.zero,
+                textStyle: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                ),
+              )
+            : SelectableText(
+                record.body,
+                style: const TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 14,
+                ),
+              ),
+      ),
+    );
   }
 
   Color _getMethodColor(String method) {
     switch (method.toUpperCase()) {
-      case 'GET': return Colors.green;
-      case 'POST': return Colors.orange;
-      case 'PUT': return Colors.blue;
-      case 'DELETE': return Colors.red;
-      case 'PATCH': return Colors.purple;
-      default: return Colors.grey;
+      case 'GET':
+        return Colors.green;
+      case 'POST':
+        return Colors.orange;
+      case 'PUT':
+        return Colors.blue;
+      case 'DELETE':
+        return Colors.red;
+      case 'PATCH':
+        return Colors.purple;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -735,7 +946,7 @@ class RequestDetailPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Text(
-              'General',
+              'Url',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
@@ -743,11 +954,7 @@ class RequestDetailPage extends StatelessWidget {
             ),
           ),
           ListTile(
-            title: const Text('URL'),
-            subtitle: SelectableText(record.url),
-          ),
-          ListTile(
-            title: const Text('Method'),
+            title: SelectableText(record.url),
             subtitle: SelectableText(
               record.method,
               style: TextStyle(
@@ -756,34 +963,35 @@ class RequestDetailPage extends StatelessWidget {
               ),
             ),
           ),
-          const Divider(),
+          
+          const Divider(height: 32),
+
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Text(
-              'Payload',
+              'Headers',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          ListTile(
-            title: const Text('Headers'),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: _buildHeadersPreview(context),
-            ),
-          ),
-          ListTile(
-            title: const Text('Body'),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: SelectableText(
-                record.body.isEmpty ? '(Empty)' : record.body,
-                style: const TextStyle(fontFamily: 'monospace'),
+          _buildHeadersTable(context),
+          
+          const Divider(height: 32),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Text(
+              'Body',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
+          _buildBodySection(context),
+
           const SizedBox(height: 32),
         ],
       ),
