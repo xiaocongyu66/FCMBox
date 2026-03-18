@@ -86,10 +86,11 @@ class _RequestPageState extends State<RequestPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               children: [
-                InputChip(
+                FilterChip(
                   label: Text(_domainFilter.isEmpty ? 'All Domains' : _domainFilter),
                   avatar: const Icon(Icons.public, size: 18),
-                  onPressed: () {
+                  selected: _domainFilter.isNotEmpty,
+                  onSelected: (_) {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -118,13 +119,13 @@ class _RequestPageState extends State<RequestPage> {
                       ),
                     );
                   },
-                  onDeleted: _domainFilter.isEmpty ? null : () => setState(() => _domainFilter = ''),
                 ),
                 const SizedBox(width: 8),
-                InputChip(
+                FilterChip(
                   label: Text(_methodFilter.isEmpty ? 'All Methods' : _methodFilter),
                   avatar: const Icon(Icons.http, size: 18),
-                  onPressed: () {
+                  selected: _methodFilter.isNotEmpty,
+                  onSelected: (_) {
                     showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -153,7 +154,6 @@ class _RequestPageState extends State<RequestPage> {
                       ),
                     );
                   },
-                  onDeleted: _methodFilter.isEmpty ? null : () => setState(() => _methodFilter = ''),
                 ),
               ],
             ),
@@ -168,32 +168,14 @@ class _RequestPageState extends State<RequestPage> {
                       final date = DateTime.fromMillisecondsSinceEpoch(record.timestamp);
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        child: ListTile(
-                          title: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: _getMethodColor(record.method),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  record.method,
-                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  record.url,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Text(date.toString().split('.')[0]),
+                        elevation: 0,
+                        color: Theme.of(context).cardColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -205,6 +187,42 @@ class _RequestPageState extends State<RequestPage> {
                           onLongPress: () {
                             _openComposer(template: record);
                           },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            child: Row(
+                              children: [
+                                Text(
+                                  record.method,
+                                  style: TextStyle(
+                                    color: _getMethodColor(record.method),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        record.url,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        date.toString().split('.')[0],
+                                        style: Theme.of(context).textTheme.bodySmall,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       );
                     },
@@ -215,18 +233,43 @@ class _RequestPageState extends State<RequestPage> {
       floatingActionButton: SpeedDial(
         icon: Icons.add,
         activeIcon: Icons.close,
-        spacing: 3,
-        childPadding: const EdgeInsets.all(5),
-        spaceBetweenChildren: 4,
+        spacing: 12,
+        spaceBetweenChildren: 8,
+        overlayColor: Theme.of(context).scaffoldBackgroundColor,
+        overlayOpacity: 0.7,
+        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         children: [
           SpeedDialChild(
-            child: const Icon(Icons.insert_drive_file),
+            elevation: 1,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            child: const Icon(Icons.insert_drive_file_outlined),
             label: 'Blank Template',
+            labelStyle: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            labelBackgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+            labelShadow: [],
             onTap: () => _openComposer(),
           ),
           SpeedDialChild(
-            child: const Icon(Icons.cloud_upload),
+            elevation: 1,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            child: const Icon(Icons.cloud_upload_outlined),
             label: 'FCM Template',
+            labelStyle: TextStyle(
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            labelBackgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
+            labelShadow: [],
             onTap: () => _openComposer(useFcmTemplate: true),
           ),
         ],
@@ -236,10 +279,11 @@ class _RequestPageState extends State<RequestPage> {
 
   Color _getMethodColor(String method) {
     switch (method.toUpperCase()) {
-      case 'GET': return Colors.blue;
-      case 'POST': return Colors.green;
-      case 'PUT': return Colors.orange;
+      case 'GET': return Colors.green;
+      case 'POST': return Colors.orange;
+      case 'PUT': return Colors.blue;
       case 'DELETE': return Colors.red;
+      case 'PATCH': return Colors.purple;
       default: return Colors.grey;
     }
   }
@@ -355,15 +399,14 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
   void _ensureEmptyHeaderRow() {
     bool shouldAdd = _headers.isEmpty || _headers.last['key']!.text.isNotEmpty || _headers.last['value']!.text.isNotEmpty;
     if (shouldAdd) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
+      if (mounted) {
         setState(() {
           _headers.add({
             'key': TextEditingController(),
             'value': TextEditingController(),
           });
         });
-      });
+      }
     }
   }
 
@@ -404,6 +447,9 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
           break;
         case 'DELETE':
           response = await http.delete(uri, headers: headersMap, body: _bodyController.text);
+          break;
+        case 'PATCH':
+          response = await http.patch(uri, headers: headersMap, body: _bodyController.text);
           break;
         default:
           throw Exception('Unsupported method');
@@ -448,47 +494,60 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
         children: [
           // URL Section
-          const Text('URL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _urlController,
-            decoration: const InputDecoration(
-              hintText: 'https://api.example.com',
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Method Section
-          const Text('Method', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              border: Border.all(color: Theme.of(context).colorScheme.outline),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                isExpanded: true,
-                value: _method,
-                items: ['GET', 'POST', 'PUT', 'DELETE'].map((m) {
-                  return DropdownMenuItem(value: m, child: Text(m));
-                }).toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _method = v);
-                },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: TextField(
+              controller: _urlController,
+              decoration: InputDecoration(
+                labelText: 'URL',
+                hintText: 'https://api.example.com',
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          
+          // Method Section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: DropdownMenu<String>(
+              initialSelection: _method,
+              label: const Text('Method'),
+              expandedInsets: EdgeInsets.zero,
+              inputDecorationTheme: InputDecorationTheme(
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              onSelected: (v) {
+                if (v != null) setState(() => _method = v);
+              },
+              dropdownMenuEntries: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'].map((m) {
+                return DropdownMenuEntry(value: m, label: m);
+              }).toList(),
+            ),
+          ),
+          
+          const Divider(height: 32),
           
           // Headers Section
-          const Text('Headers', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              'Headers',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
           const SizedBox(height: 8),
           ListView.builder(
             shrinkWrap: true,
@@ -496,7 +555,7 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
             itemCount: _headers.length,
             itemBuilder: (context, index) {
               return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                 child: Row(
                   children: [
                     Expanded(
@@ -515,22 +574,26 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
                           _ensureEmptyHeaderRow();
                         },
                         fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                          // Sync existing controller value when built
                           if (textEditingController.text != _headers[index]['key']!.text) {
                             textEditingController.text = _headers[index]['key']!.text;
                           }
-                          textEditingController.addListener(() {
-                            _headers[index]['key']!.text = textEditingController.text;
-                            _ensureEmptyHeaderRow();
-                          });
                           
                           return TextField(
                             controller: textEditingController,
                             focusNode: focusNode,
-                            decoration: const InputDecoration(
+                            onChanged: (val) {
+                              _headers[index]['key']!.text = val;
+                              _ensureEmptyHeaderRow();
+                            },
+                            decoration: InputDecoration(
                               hintText: 'Key',
                               isDense: true,
-                              border: OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
                             ),
                           );
                         },
@@ -541,10 +604,15 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
                       flex: 3,
                       child: TextField(
                         controller: _headers[index]['value'],
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'Value',
                           isDense: true,
-                          border: OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                         onChanged: (_) => _ensureEmptyHeaderRow(),
                       ),
@@ -565,35 +633,49 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
               );
             },
           ),
-          const SizedBox(height: 16),
+          
+          const Divider(height: 32),
           
           // Body Section
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Body', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Row(
-                children: [
-                  const Text('RAW'),
-                  Switch(
-                    value: _isJsonMode,
-                    onChanged: (v) => setState(() => _isJsonMode = v),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Body', style: Theme.of(context).textTheme.titleMedium),
+                SegmentedButton<bool>(
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('RAW')),
+                    ButtonSegment(value: true, label: Text('JSON')),
+                  ],
+                  selected: {_isJsonMode},
+                  onSelectionChanged: (set) => setState(() => _isJsonMode = set.first),
+                  showSelectedIcon: false,
+                  style: SegmentedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
-                  const Text('JSON'),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _bodyController,
-            maxLines: 10,
-            minLines: 3,
-            decoration: const InputDecoration(
-              hintText: 'Request Body',
-              border: OutlineInputBorder(),
+                ),
+              ],
             ),
-            style: const TextStyle(fontFamily: 'monospace'),
+          ),
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: TextField(
+              controller: _bodyController,
+              maxLines: 12,
+              minLines: 5,
+              decoration: InputDecoration(
+                hintText: 'Request Payload',
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+              style: const TextStyle(fontFamily: 'monospace'),
+            ),
           ),
           const SizedBox(height: 40), // Padding for scrolling
         ],
@@ -607,7 +689,7 @@ class RequestDetailPage extends StatelessWidget {
 
   const RequestDetailPage({super.key, required this.record});
 
-  Widget _buildHeadersPreview() {
+  Widget _buildHeadersPreview(BuildContext context) {
     try {
       final Map<String, dynamic> headersMap = json.decode(record.headers);
       if (headersMap.isEmpty) {
@@ -633,56 +715,76 @@ class RequestDetailPage extends StatelessWidget {
     }
   }
 
+  Color _getMethodColor(String method) {
+    switch (method.toUpperCase()) {
+      case 'GET': return Colors.green;
+      case 'POST': return Colors.orange;
+      case 'PUT': return Colors.blue;
+      case 'DELETE': return Colors.red;
+      case 'PATCH': return Colors.purple;
+      default: return Colors.grey;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Request Details')),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
         children: [
-          const Text('URL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          SelectableText(record.url, style: const TextStyle(fontSize: 16)),
-          const Divider(height: 32),
-          
-          const Text('Method', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
-            ),
-            child: Text(record.method, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.blue)),
-          ),
-          const Divider(height: 32),
-          
-          const Text('Headers', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: _buildHeadersPreview(),
-          ),
-          const Divider(height: 32),
-          
-          const Text('Body', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey[900] : Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: SelectableText(
-              record.body.isEmpty ? '(Empty)' : record.body,
-              style: const TextStyle(fontFamily: 'monospace'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'General',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
+          ListTile(
+            title: const Text('URL'),
+            subtitle: SelectableText(record.url),
+          ),
+          ListTile(
+            title: const Text('Method'),
+            subtitle: SelectableText(
+              record.method,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _getMethodColor(record.method),
+              ),
+            ),
+          ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Text(
+              'Payload',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ListTile(
+            title: const Text('Headers'),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: _buildHeadersPreview(context),
+            ),
+          ),
+          ListTile(
+            title: const Text('Body'),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: SelectableText(
+                record.body.isEmpty ? '(Empty)' : record.body,
+                style: const TextStyle(fontFamily: 'monospace'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
         ],
       ),
     );
