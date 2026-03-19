@@ -52,34 +52,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  if (message.data.isEmpty) {
-    return;
-  }
-
-  await Firebase.initializeApp();
-
-  // Extract data for new model
-  final notification = message.notification;
-  final service = notification?.title ?? 'Unknown Service';
-  final overview = notification?.body ?? '';
-  final image = notification?.android?.imageUrl ?? message.data['image'];
-
-  if (image != null) {
-    await _cacheImage(image);
-  }
-
-  final timestamp = DateTime.now().millisecondsSinceEpoch;
-
-  final newNote = Note(
-    timestamp: timestamp,
-    data: message.data,
-    service: service,
-    overview: overview,
-    image: image,
-    id: message.messageId,
-  );
-
-  await DatabaseHelper.instance.create(newNote);
+  // Now receiving messages is pulling from backend. We do not need to process and save them locally in background.
 }
 
 void main() async {
@@ -312,31 +285,22 @@ class _MyHomePageState extends State<MyHomePage>
           ),
         );
       }
-      _addNoteFromMessage(message);
-      _refreshFromBackend(quantity: 1, deleteOld: false);
+      _refreshFromBackend();
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      final note = _addNoteFromMessage(message);
       // Opens app via bubble -> Update based on current Quantity settings
-      if (note != null && mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => JsonViewerPage(note: note)),
-        );
-        _refreshFromBackend(quantity: _quantityFilter, deleteOld: false);
+      if (mounted) {
+        // We trigger a refresh. Navigation to specific note is dropped because we only pull from backend now.
+        _refreshFromBackend();
       }
     });
 
     FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null && mounted) {
-        final note = _addNoteFromMessage(message);
-        if (note != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => JsonViewerPage(note: note)),
-          );
-          _refreshFromBackend(quantity: _quantityFilter, deleteOld: false);
+        // Start app via bubble -> Update based on current Quantity settings
+        if (mounted) {
+          _refreshFromBackend();
         }
       }
     });
@@ -388,49 +352,6 @@ class _MyHomePageState extends State<MyHomePage>
     }
   }
 
-  Note? _addNoteFromMessage(RemoteMessage message) {
-    if (message.data.isEmpty) return null;
-
-    // Deduplication check
-    if (_notes.any((n) => n.id == message.messageId)) return null;
-
-    final notification = message.notification;
-    final service = notification?.title ?? 'Unknown Service';
-    final overview = notification?.body ?? '';
-    final image = notification?.android?.imageUrl ?? message.data['image'];
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-
-    // Cache in background
-    if (image != null) {
-      _cacheImage(image).then((_) {
-        if (mounted) setState(() {}); // Trigger rebuild to show cached image
-      });
-    }
-
-    final newNote = Note(
-      timestamp: timestamp,
-      data: message.data,
-      service: service,
-      overview: overview,
-      image: image,
-      id: message.messageId,
-    );
-
-    // Save to DB asynchronously
-    DatabaseHelper.instance.create(newNote).then((_) {
-      // Success
-    });
-
-    setState(() {
-      _newlyAddedIds.add(newNote.id);
-      _notes.insert(0, newNote);
-      _updateServices();
-      _applyFilters();
-    });
-
-    return newNote;
-  }
-
   Future<void> _loadNotes() async {
     try {
       final notes = await DatabaseHelper.instance.readAllNotes();
@@ -449,7 +370,6 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   void _applyFilters() {
-    HapticFeedback.lightImpact();
     setState(() {
       _filteredNotes = _notes.where((note) {
         if (_selectedService != null && note.service != _selectedService) {
@@ -655,6 +575,7 @@ class _MyHomePageState extends State<MyHomePage>
                                   ),
                                 ),
                                 onPressed: () {
+                                  HapticFeedback.selectionClick();
                                   setState(() {
                                     sliderValue = e.toDouble();
                                     _quantityFilter = e;
@@ -1008,12 +929,16 @@ class _MyHomePageState extends State<MyHomePage>
                           ? Colors.white70
                           : Colors.black54,
                     ),
-                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                    onPressed: () => {
+                      HapticFeedback.heavyImpact(),
+                      _scaffoldKey.currentState?.openDrawer(),
+                    },
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: InkWell(
                       onTap: () async {
+                        HapticFeedback.heavyImpact();
                         final result = await showSearch<Map<String, dynamic>?>(
                           context: context,
                           delegate: NoteSearchDelegate(
@@ -1056,7 +981,7 @@ class _MyHomePageState extends State<MyHomePage>
                   const SizedBox(width: 16),
                   InkWell(
                     onTap: () {
-                      HapticFeedback.lightImpact();
+                      HapticFeedback.heavyImpact();
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -1111,13 +1036,17 @@ class _MyHomePageState extends State<MyHomePage>
                       label: Text(AppLocalizations.of(context)?.all ?? 'All'),
                       avatar: const Icon(Icons.filter_list, size: 18),
                       onPressed: () {
+                        HapticFeedback.heavyImpact();
                         _scaffoldKey.currentState?.openDrawer();
                       },
                     ),
                   const SizedBox(width: 8),
                   ActionChip(
                     label: Text('$_quantityFilter'),
-                    onPressed: _showQuantityPicker,
+                    onPressed: () {
+                      HapticFeedback.heavyImpact();
+                      _showQuantityPicker();
+                    },
                   ),
                   const SizedBox(width: 8),
                   InputChip(

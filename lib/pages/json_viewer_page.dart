@@ -2,6 +2,7 @@ import 'package:fcm_box/cached_network_image.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fcm_box/models/note.dart';
+import 'package:flutter/services.dart';
 
 class JsonViewerPage extends StatelessWidget {
   final Note note;
@@ -10,6 +11,7 @@ class JsonViewerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    HapticFeedback.lightImpact(); // Add haptic feedback when page is opened
     return Scaffold(
       appBar: AppBar(title: const Text('Preview')),
       body: SingleChildScrollView(

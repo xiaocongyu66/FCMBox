@@ -123,6 +123,7 @@ class _CloudPageState extends State<CloudPage> {
                           ],
                           selected: {tempBackendUrl},
                           onSelectionChanged: (Set<String> newSelection) {
+                            HapticFeedback.heavyImpact();
                             setSheetState(() {
                               tempBackendUrl = newSelection.first;
                             });
@@ -383,10 +384,10 @@ class _CloudPageState extends State<CloudPage> {
               AppLocalizations.of(context)?.backend_status ?? 'Backend Status',
             ),
             subtitle: Text(
-                _backendStatusCode != null ? 'HTTP $_backendStatusCode' : 'None',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              _backendStatusCode != null ? 'HTTP $_backendStatusCode' : 'None',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             onTap: _showConfigSheet,
           ),
 
