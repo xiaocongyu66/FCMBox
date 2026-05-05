@@ -1,0 +1,271 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+import '../models/note.dart';
+import '../models/request_record.dart';
+
+class DatabaseHelper {
+  static final DatabaseHelper instance = DatabaseHelper._init();
+  static Database? _database;
+
+  DatabaseHelper._init();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDB('notes.db');
+    return _database!;
+  }
+
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+
+    return await openDatabase(
+      path,
+      version: 5,
+      onCreate: _createDB,
+      onUpgrade: _onUpgrade,
+    );
+  }
+
+  Future<void> _createDB(Database db, int version) async {
+    await db.execute('''
+CREATE TABLE notes (
+  timestamp INTEGER NOT NULL,
+  data TEXT NOT NULL,
+  service TEXT NOT NULL,
+  overview TEXT NOT NULL,
+  image TEXT
+)
+    ''');
+    _createImageCacheTable(db);
+    _createRequestsTable(db);
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await _createImageCacheTable(db);
+    }
+    if (oldVersion < 3) {
+      await db.execute('DROP TABLE IF EXISTS image_cache');
+      await _createImageCacheTable(db);
+    }
+    if (oldVersion < 4) {
+      await _createRequestsTable(db);
+    }
+    if (oldVersion < 5) {
+      await db.execute(
+        'ALTER TABLE requests ADD COLUMN response_path TEXT',
+      );
+    }
+  }
+
+  Future<void> _createImageCacheTable(Database db) async {
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS image_cache (
+  url TEXT PRIMARY KEY,
+  data BLOB NOT NULL
+)
+    ''');
+  }
+
+  Future<void> _createRequestsTable(Database db) async {
+    await db.execute('''
+CREATE TABLE IF NOT EXISTS requests (
+  timestamp INTEGER PRIMARY KEY,
+  url TEXT NOT NULL,
+  method TEXT NOT NULL,
+  headers TEXT NOT NULL,
+  body TEXT NOT NULL,
+  response_path TEXT
+)
+    ''');
+  }
+
+  Future<int> insertRequest(RequestRecord record) async {
+    final db = await instance.database;
+    return await db.insert('requests', record.toJson());
+  }
+
+  Future<List<RequestRecord>> readAllRequests() async {
+    final db = await instance.database;
+    final orderBy = 'timestamp DESC';
+    final result = await db.query('requests', orderBy: orderBy);
+
+    return result.map((json) => RequestRecord.fromJson(json)).toList();
+  }
+
+  Future<RequestRecord?> readRequest(int timestamp) async {
+    final db = await instance.database;
+    final result = await db.query(
+      'requests',
+      where: 'timestamp = ?',
+      whereArgs: [timestamp],
+      limit: 1,
+    );
+    if (result.isEmpty) return null;
+    return RequestRecord.fromJson(result.first);
+  }
+
+  Future<void> _deleteFileIfExists(String? path) async {
+    if (path == null || path.isEmpty) return;
+    final file = File(path);
+    if (await file.exists()) {
+      await file.delete();
+    }
+  }
+
+  Future<void> deleteRequest(int timestamp) async {
+    final db = await instance.database;
+    final record = await readRequest(timestamp);
+    await _deleteFileIfExists(record?.responsePath);
+    await db.delete('requests', where: 'timestamp = ?', whereArgs: [timestamp]);
+  }
+
+  Future<void> deleteAllRequests() async {
+    final db = await instance.database;
+    final result = await db.query('requests', columns: ['response_path']);
+    for (final row in result) {
+      await _deleteFileIfExists(row['response_path'] as String?);
+    }
+    await db.delete('requests');
+  }
+
+  Future<void> saveImage(String url, Uint8List data) async {
+    final db = await instance.database;
+    await db.insert('image_cache', {
+      'url': url,
+      'data': data,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<Uint8List?> getImage(String url) async {
+    final db = await instance.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      'image_cache',
+      columns: ['data'],
+      where: 'url = ?',
+      whereArgs: [url],
+    );
+    if (maps.isNotEmpty) {
+      return maps.first['data'] as Uint8List;
+    }
+    return null;
+  }
+
+  Future<void> deleteUnusedImages(List<String> activeUrls) async {
+    final db = await instance.database;
+    if (activeUrls.isEmpty) {
+      await db.delete('image_cache');
+      return;
+    }
+
+    // To handle large numbers of active URLs without hitting SQLite argument limits:
+    // 1. Get all cached URLs.
+    // 2. Identify which ones are NOT in the active list.
+    // 3. Delete those specific URLs.
+
+    final List<Map<String, dynamic>> result = await db.query(
+      'image_cache',
+      columns: ['url'],
+    );
+    final cachedUrls = result.map((r) => r['url'] as String).toSet();
+    final activeUrlSet = activeUrls.toSet();
+
+    final urlsToDelete = cachedUrls.difference(activeUrlSet).toList();
+
+    const int batchSize = 900;
+    for (var i = 0; i < urlsToDelete.length; i += batchSize) {
+      final end = (i + batchSize < urlsToDelete.length)
+          ? i + batchSize
+          : urlsToDelete.length;
+      final batch = urlsToDelete.sublist(i, end);
+      final placeholders = List.filled(batch.length, '?').join(',');
+      await db.delete(
+        'image_cache',
+        where: 'url IN ($placeholders)',
+        whereArgs: batch,
+      );
+    }
+  }
+
+  Future<void> deleteImage(String url) async {
+    final db = await instance.database;
+    await db.delete('image_cache', where: 'url = ?', whereArgs: [url]);
+  }
+
+  Future<int> create(Note note) async {
+    final db = await instance.database;
+    final map = {
+      'timestamp': note.timestamp,
+      'data': jsonEncode(note.data),
+      'service': note.service,
+      'overview': note.overview,
+      'image': note.image,
+    };
+    return await db.insert('notes', map);
+  }
+
+  Future<List<Note>> readAllNotes() async {
+    final db = await instance.database;
+
+    final orderBy = 'timestamp DESC';
+    final result = await db.query('notes', orderBy: orderBy);
+
+    return result.map((json) {
+      final timestamp = json['timestamp'] as int;
+      final service = json['service'] as String;
+
+      return Note(
+        timestamp: timestamp,
+        data: jsonDecode(json['data'] as String),
+        service: service,
+        overview: json['overview'] as String,
+        image: json['image'] as String?,
+        // ID is not stored, so it will be auto-generated by constructor: '${timestamp}_$service'
+        // or we can use rowid if we select it?
+        // For now, let's respect the user's column list strictly.
+      );
+    }).toList();
+  }
+
+  Future<int> deleteOld(bool deleteOldData) async {
+    // Implementation depends on requirements, for now simple delete all if needed
+    // or delete based on timestamp
+    return 0;
+  }
+
+  Future<void> deleteAll() async {
+    final db = await instance.database;
+    await db.delete('notes');
+  }
+
+  Future<void> deleteByService(String service) async {
+    final db = await instance.database;
+    await db.delete('notes', where: 'service = ?', whereArgs: [service]);
+  }
+
+  Future<void> insertBatch(List<Note> notes) async {
+    final db = await instance.database;
+    final batch = db.batch();
+    for (var note in notes) {
+      final map = {
+        'timestamp': note.timestamp,
+        'data': jsonEncode(note.data),
+        'service': note.service,
+        'overview': note.overview,
+        'image': note.image,
+      };
+      batch.insert('notes', map);
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<void> deleteWhere(String where, List<Object?> whereArgs) async {
+    final db = await instance.database;
+    await db.delete('notes', where: where, whereArgs: whereArgs);
+  }
+}

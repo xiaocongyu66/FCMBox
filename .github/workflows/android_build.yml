@@ -1,0 +1,76 @@
+name: Android Build
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Decode Google Services JSON
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" | base64 --decode > android/app/google-services.json
+          else
+            echo "GOOGLE_SERVICES_JSON secret not found."
+          fi
+
+      - name: Decode Keystore
+        env:
+          KEY_STORE_BASE64: ${{ secrets.KEY_STORE_BASE64 }}
+        run: |
+          if [ -n "$KEY_STORE_BASE64" ]; then
+            echo "$KEY_STORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          else
+            echo "KEY_STORE_BASE64 secret not found."
+          fi
+
+      - name: Build APK
+        env:
+          KEY_STORE_PATH: upload-keystore.jks
+          KEY_STORE_ALIAS: ${{ secrets.KEY_STORE_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: Build App Bundle
+        env:
+          KEY_STORE_PATH: upload-keystore.jks
+          KEY_STORE_ALIAS: ${{ secrets.KEY_STORE_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+        run: flutter build appbundle --release 
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
