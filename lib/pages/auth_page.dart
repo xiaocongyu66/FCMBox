@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'package:cloudflare_turnstile/cloudflare_turnstile.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../l10n/app_localizations.dart';
 import '../utils/crypto_utils.dart';
 

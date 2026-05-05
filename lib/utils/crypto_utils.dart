@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';          // 提供 Uint8List
+import 'package:flutter/foundation.dart'; // 提供 debugPrint
 import 'package:encrypt/encrypt.dart' as encrypt;
 
 class CryptoUtils {

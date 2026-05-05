@@ -58,6 +58,9 @@ dependencies:
   flutter_expandable_fab: ^2.5.2
   connectivity_plus: ^7.0.0
   open_filex: ^4.7.0
+  dependencies:
+  cloudflare_turnstile: ^3.6.0
+  encrypt: ^5.0.3
 
 dev_dependencies:
   flutter_test:

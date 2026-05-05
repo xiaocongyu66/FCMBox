@@ -23,6 +23,6 @@ class AppConfig {
   // ---------- 其他常量 ----------
   static const String appTitle = 'FCM Box';
   static const String defaultNotificationChannelId = 'high_importance_channel';
-  static const String appVersion = '2.1.0';   // 与 pubspec.yaml 中的 version 保持一致
+  static const String appVersion = '2.1.1';   // 与 pubspec.yaml 中的 version 保持一致
 }
 
