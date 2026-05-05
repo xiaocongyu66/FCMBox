@@ -104,7 +104,7 @@
   "custom_url": "自定义 URL",
   "custom_url_enabled": "已启用自定义地址",
   "custom_url_disabled": "使用预设地址",
-  "custom_url_label": "自定义地址"
+  "custom_url_label": "自定义地址",
   "english": "English",
   "chinese": "简体中文"
 }
