@@ -101,6 +101,10 @@
   "download_update": "Download Update",
   "storage_directory_not_set": "Storage directory not set",
   "failed_open_directory": "Failed to open directory",
+  "custom_url": "Custom URL",
+  "custom_url_enabled": "Custom address enabled",
+  "custom_url_disabled": "Using preset address",
+  "custom_url_label": "Custom Address"
   "english": "English",
   "chinese": "简体中文"
 }

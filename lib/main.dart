@@ -728,16 +728,22 @@ class _MyHomePageState extends State<MyHomePage>
   }
 
   Future<void> _showLoginPage() async {
-    final prefs = await SharedPreferences.getInstance();
-    final backendUrl = prefs.getString('backend_url') ?? '';
-    final useHttps = prefs.getBool('backend_https') ?? true;
-    if (backendUrl.isEmpty) {
-      Fluttertoast.showToast(
-        msg: AppLocalizations.of(context)?.backend_not_configured ??
-            'Backend not configured',
-      );
-      return;
-    }
+  final backendUrl = await AppConfig.getBackendUrl();
+  if (!mounted) return;
+
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => AuthPage(
+        backendUrl: backendUrl,
+        onAuthSuccess: () {
+          _loadBackendIcon();
+          _refreshFromBackend();
+        },
+      ),
+    ),
+  );
+}
     String cleanUrl = backendUrl.replaceAll(RegExp(r'^https?://'), '');
     final fullUrl = (useHttps ? 'https://' : 'http://') + cleanUrl;
 

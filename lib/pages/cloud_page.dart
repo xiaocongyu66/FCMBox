@@ -64,14 +64,18 @@ class _CloudPageState extends State<CloudPage> {
 
   void _showConfigSheet() async {
     final localizations = AppLocalizations.of(context);
-    String tempBackendUrl = _backendUrl;
-    // 使用配置文件常量进行判断
-    if (tempBackendUrl != AppConfig.cloudflareDefaultUrl &&
-        tempBackendUrl != AppConfig.firebaseDefaultUrl) {
-      tempBackendUrl = AppConfig.cloudflareDefaultUrl; // 重置为默认 Cloudflare 地址
-    }
+    // 判断当前是否是预设值，如果不是则当作自定义
+    final bool isPreset = _backendUrl == AppConfig.cloudflareDefaultUrl ||
+                           _backendUrl == AppConfig.firebaseDefaultUrl;
+    String customUrl = isPreset ? '' : _backendUrl;
+    bool isCustom = !isPreset;
+
+    String tempPresetUrl = isPreset
+        ? _backendUrl
+        : AppConfig.cloudflareDefaultUrl; // 默认选中 Cloudflare
     final authController = TextEditingController(text: _authKey);
     final ipController = TextEditingController(text: _ipAddress);
+    final customUrlController = TextEditingController(text: customUrl);
     bool tempHttps = _useHttps;
     String deviceName = "Unknown Device";
 
@@ -100,6 +104,7 @@ class _CloudPageState extends State<CloudPage> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 预设地址选择
                       SizedBox(
                         width: double.infinity,
                         child: SegmentedButton<String>(
@@ -123,43 +128,101 @@ class _CloudPageState extends State<CloudPage> {
                               ),
                             ),
                           ],
-                          selected: {tempBackendUrl},
+                          selected: isCustom ? <String>{} : {tempPresetUrl},
                           onSelectionChanged: (Set<String> newSelection) {
                             HapticFeedback.heavyImpact();
                             setSheetState(() {
-                              tempBackendUrl = newSelection.first;
+                              tempPresetUrl = newSelection.first;
+                              isCustom = false;
+                              customUrlController.clear();
                             });
                           },
                         ),
                       ),
+
                       const SizedBox(height: 16),
+
+                      // 自定义地址开关
+                      SwitchListTile(
+                        title: Text(localizations?.custom_url ?? 'Custom URL'),
+                        subtitle: Text(
+                          isCustom
+                              ? (localizations?.custom_url_enabled ??
+                                  'Custom address enabled')
+                              : (localizations?.custom_url_disabled ??
+                                  'Using preset address'),
+                        ),
+                        value: isCustom,
+                        onChanged: (val) {
+                          HapticFeedback.lightImpact();
+                          setSheetState(() {
+                            isCustom = val;
+                            if (val) {
+                              customUrlController.text = _backendUrl.isNotEmpty
+                                  ? _backendUrl
+                                  : '';
+                            } else {
+                              tempPresetUrl = AppConfig.cloudflareDefaultUrl;
+                              customUrlController.clear();
+                            }
+                          });
+                        },
+                        contentPadding: EdgeInsets.zero,
+                      ),
+
+                      // 自定义 URL 输入框
+                      if (isCustom)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: TextField(
+                            controller: customUrlController,
+                            decoration: InputDecoration(
+                              labelText: localizations?.custom_url_label ??
+                                  'Custom Address',
+                              hintText: 'your-worker.workers.dev',
+                              border: const OutlineInputBorder(),
+                            ),
+                            onChanged: (val) {
+                              // 实时更新临时变量，但真正保存是在点击保存时
+                            },
+                          ),
+                        ),
+
+                      const SizedBox(height: 8),
+
+                      // 授权密钥
                       TextField(
                         controller: authController,
                         decoration: InputDecoration(
-                          labelText: localizations?.authorization_label ?? 'Authorization',
+                          labelText: localizations?.authorization_label ??
+                              'Authorization',
                           border: const OutlineInputBorder(),
                         ),
                       ),
+
                       const SizedBox(height: 8),
+
+                      // 高级选项
                       ExpansionTile(
-                        title: Text(localizations?.advanced_options ?? 'Advanced options'),
+                        title: Text(localizations?.advanced_options ??
+                            'Advanced options'),
                         shape: const Border(),
                         collapsedShape: const Border(),
-                        childrenPadding: const EdgeInsets.only(
-                          top: 8,
-                          bottom: 8,
-                        ),
+                        childrenPadding:
+                            const EdgeInsets.only(top: 8, bottom: 8),
                         children: [
                           TextField(
                             controller: ipController,
                             decoration: InputDecoration(
-                              labelText: localizations?.ip_address_optional ?? 'IP Address (Optional)',
+                              labelText: localizations?.ip_address_optional ??
+                                  'IP Address (Optional)',
                               border: const OutlineInputBorder(),
                             ),
                           ),
                           const SizedBox(height: 8),
                           SwitchListTile(
-                            title: Text(localizations?.use_https ?? 'Use HTTPS'),
+                            title: Text(
+                                localizations?.use_https ?? 'Use HTTPS'),
                             value: tempHttps,
                             onChanged: (val) {
                               HapticFeedback.lightImpact();
@@ -169,6 +232,7 @@ class _CloudPageState extends State<CloudPage> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -191,7 +255,11 @@ class _CloudPageState extends State<CloudPage> {
                 FilledButton(
                   onPressed: () {
                     setState(() {
-                      _backendUrl = tempBackendUrl;
+                      if (isCustom) {
+                        _backendUrl = customUrlController.text.trim();
+                      } else {
+                        _backendUrl = tempPresetUrl;
+                      }
                       _authKey = authController.text;
                       _ipAddress = ipController.text;
                       _useHttps = tempHttps;
@@ -362,7 +430,10 @@ class _CloudPageState extends State<CloudPage> {
           Center(
             child: Text(
               _backendInfo,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: Colors.grey),
             ),
           ),
           const SizedBox(height: 40),
@@ -375,13 +446,15 @@ class _CloudPageState extends State<CloudPage> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : (_isConnected
-                      ? const Icon(Icons.check)
-                      : const Icon(Icons.close)),
+                    ? const Icon(Icons.check)
+                    : const Icon(Icons.close)),
             title: Text(
               localizations?.backend_status ?? 'Backend Status',
             ),
             subtitle: Text(
-              _backendStatusCode != null ? 'HTTP $_backendStatusCode' : 'None',
+              _backendStatusCode != null
+                  ? 'HTTP $_backendStatusCode'
+                  : 'None',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -394,13 +467,14 @@ class _CloudPageState extends State<CloudPage> {
               localizations?.check_code_sample ?? 'View a code sample',
             ),
             onTap: () {
-              _launchUrl(AppConfig.codeSampleUrl); // 使用配置常量
+              _launchUrl(AppConfig.codeSampleUrl);
             },
           ),
 
           SwitchListTile(
             title: Text(
-              localizations?.delete_old_data ?? 'Delete old data after update',
+              localizations?.delete_old_data ??
+                  'Delete old data after update',
             ),
             value: _deleteOldData,
             onChanged: (val) async {

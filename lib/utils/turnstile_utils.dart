@@ -1,30 +1,23 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart'; // 提供 debugPrint
+import 'config.dart'; // 使用全局配置
 
 class TurnstileUtils {
-  final String backendUrl;
-
-  TurnstileUtils(this.backendUrl);
-
-  /// 向后端提交 Turnstile Token 进行验证
-  Future<bool> verify(
-    String turnstileToken, {
-    String? siteKey,
-    String? secretKey,
-  }) async {
+  // 直接使用全局后端 URL，无需外部传入
+  Future<bool> verify(String turnstileToken) async {
     try {
+      final backendUrl = await AppConfig.getBackendUrl();
       final response = await http.post(
-        Uri.parse('$backendUrl'),
+        Uri.parse(backendUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'action': 'verify_turnstile',
           'turnstile_token': turnstileToken,
         }),
-      );
-      if (response.statusCode == 200) {
-        return true;
-      }
-      return false;
+      ).timeout(const Duration(seconds: 10)); // 超时保护
+
+      return response.statusCode == 200;
     } catch (e) {
       debugPrint('Turnstile verification error: $e');
       return false;

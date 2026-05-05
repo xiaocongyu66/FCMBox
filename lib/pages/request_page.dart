@@ -16,6 +16,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/request_record.dart';
 import '../db/notes_database.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/config.dart'; // 导入全局配置
 
 List<Uri> _buildHttpCandidates(String input) {
   final trimmed = input.trim();
@@ -548,13 +549,13 @@ class _RequestComposerPageState extends State<RequestComposerPage> {
       } catch (_) {}
     } else if (widget.useFcmTemplate) {
       _method = 'POST';
-      final prefs = await SharedPreferences.getInstance();
-      String rawUrl = prefs.getString('backend_url') ?? '';
-      String cleanUrl = rawUrl.replaceAll(RegExp(r'^https?://'), '');
-      bool useHttps = prefs.getBool('backend_https') ?? true;
-      _urlController.text = useHttps ? 'https://$cleanUrl' : 'http://$cleanUrl';
+      // ✅ 使用全局配置的后端 URL
+      final backendUrl = await AppConfig.getBackendUrl();
+      _urlController.text = backendUrl;
 
-      String authKey = prefs.getString('backend_auth') ?? '';
+      // 读取已保存的 authorization 密钥
+      final prefs = await SharedPreferences.getInstance();
+      final authKey = prefs.getString('backend_auth') ?? '';
       if (authKey.isNotEmpty) {
         _headers.add({
           'key': TextEditingController(text: 'Authorization'),
@@ -1164,7 +1165,7 @@ class RequestDetailPage extends StatelessWidget {
       return;
     }
     await OpenFilex.open(path);
-}
+  }
 
   Widget _buildLocationSection(BuildContext context) {
     final localizations = AppLocalizations.of(context);
@@ -1203,11 +1204,11 @@ class RequestDetailPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(localizations?.request_api ?? 'Request API'),
         actions: [
-        IconButton(
-           icon: const Icon(Icons.open_in_new),
-           onPressed: () => _openResponseFile(context),
-           tooltip: 'Open File',   // 直接硬编码，避免 AppLocalizations 未定义 getter 错误
-),
+          IconButton(
+            icon: const Icon(Icons.open_in_new),
+            onPressed: () => _openResponseFile(context),
+            tooltip: 'Open File',
+          ),
         ],
       ),
       body: ListView(
