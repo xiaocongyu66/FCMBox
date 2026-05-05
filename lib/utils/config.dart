@@ -8,7 +8,7 @@ class AppConfig {
   static const String firebaseDefaultUrl = 'https://fcmbox.firebase.wepayto.win/api';
 
   // ---------- GitHub 信息 ----------
-  static const String githubOwner = '你的GitHub用户名';      // 改成你自己的
+  static const String githubOwner = 'xiaocongyu66';      // 改成你自己的
   static const String githubRepo = 'FCMBox';
   
   // 文档和 Issue 链接
@@ -18,11 +18,14 @@ class AppConfig {
   static const String codeSampleUrl = 'https://github.com/$githubOwner/$githubRepo/blob/main/backendsample/README.md';
 
   // ---------- Turnstile 人机验证 ----------
-  static const String turnstileSiteKey = 'YOUR_TURNSTILE_SITE_KEY';   // 替换成你的 Site Key
+  static const String turnstileSiteKey = '0x4AAAAAADJkNSfgciYSMs2C';
 
   // ---------- 其他常量 ----------
   static const String appTitle = 'FCM Box';
   static const String defaultNotificationChannelId = 'high_importance_channel';
   static const String appVersion = '2.1.1';   // 与 pubspec.yaml 中的 version 保持一致
 }
+
+
+
 

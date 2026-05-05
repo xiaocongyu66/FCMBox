@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:cloudflare_turnstile/cloudflare_turnstile.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../l10n/app_localizations.dart';
-import '../utils/crypto_utils.dart';
+import '../utils/config.dart'; // 导入统一配置
 
 class AuthPage extends StatefulWidget {
   final String backendUrl;
@@ -30,8 +30,6 @@ class _AuthPageState extends State<AuthPage> {
   String? _turnstileToken;
   String? _registeredAuth;
   String? _deviceName;
-
-  static const _turnstileSiteKey = 'YOUR_TURNSTILE_SITE_KEY';
 
   @override
   void initState() {
@@ -159,7 +157,7 @@ class _AuthPageState extends State<AuthPage> {
                 ),
                 const SizedBox(height: 8),
                 CloudflareTurnstile(
-                  siteKey: _turnstileSiteKey,
+                  siteKey: AppConfig.turnstileSiteKey, // ✅ 修改点：使用配置中的真实密钥
                   onTokenReceived: (token) {
                     setState(() => _turnstileToken = token);
                   },
