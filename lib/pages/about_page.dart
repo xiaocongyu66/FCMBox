@@ -33,9 +33,8 @@ class _AboutPageState extends State<AboutPage> {
 
   Future<void> _checkUpdate() async {
     setState(() => _checkingUpdate = true);
-    // 替换为你的 GitHub 用户名
-    final checker = UpdateChecker.fromCurrentApp(
-      repoOwner: '你的GitHub用户名',
+    final checker = await UpdateChecker.fromCurrentApp(
+      repoOwner: 'xiaocongyu66',
       repoName: 'FCMBox',
     );
     final info = await checker.check();
@@ -50,7 +49,8 @@ class _AboutPageState extends State<AboutPage> {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         Fluttertoast.showToast(
-          msg: AppLocalizations.of(context)?.could_not_launch ??
+          // 🔧 修复：改为方法调用，传入 url 参数
+          msg: AppLocalizations.of(context)?.could_not_launch(url) ??
               'Could not launch $url',
         );
       }
@@ -86,9 +86,10 @@ class _AboutPageState extends State<AboutPage> {
             Center(
               child: Text(
                 'Version $_version',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Colors.grey),
               ),
             ),
           // 更新提示
@@ -147,7 +148,8 @@ class _AboutPageState extends State<AboutPage> {
               AppLocalizations.of(context)?.view_documentation ??
                   'View the Documentation',
             ),
-            subtitle: const Text('https://docs.wepayto.win/application/fcmbox/'),
+            subtitle:
+                const Text('https://docs.wepayto.win/application/fcmbox/'),
             onTap: () {
               _launchUrl('https://docs.wepayto.win/application/fcmbox/');
             },

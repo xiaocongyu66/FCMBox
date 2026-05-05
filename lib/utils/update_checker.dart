@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter/foundation.dart';
 
 class UpdateChecker {
   final String repoOwner;
@@ -13,8 +14,8 @@ class UpdateChecker {
     required this.currentVersion,
   });
 
-  factory UpdateChecker.fromCurrentApp({
-    String repoOwner = '你的GitHub用户名',
+  static Future<UpdateChecker> fromCurrentApp({
+    String repoOwner = 'xiaocongyu66',
     String repoName = 'FCMBox',
   }) async {
     final info = await PackageInfo.fromPlatform();

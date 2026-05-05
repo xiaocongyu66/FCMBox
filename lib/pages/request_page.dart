@@ -1144,7 +1144,7 @@ class RequestDetailPage extends StatelessWidget {
     }
   }
 
-  Future<void> _openResponseFile() async {
+  Future<void> _openResponseFile(BuildContext context) async {
     final path = record.responsePath;
     if (path == null || path.isEmpty) {
       Fluttertoast.showToast(
@@ -1164,7 +1164,7 @@ class RequestDetailPage extends StatelessWidget {
       return;
     }
     await OpenFilex.open(path);
-  }
+}
 
   Widget _buildLocationSection(BuildContext context) {
     final localizations = AppLocalizations.of(context);
@@ -1203,11 +1203,11 @@ class RequestDetailPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(localizations?.request_api ?? 'Request API'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.open_in_new),
-            onPressed: _openResponseFile,
-            tooltip: localizations?.open_file ?? 'Open File',
-          ),
+        IconButton(
+           icon: const Icon(Icons.open_in_new),
+           onPressed: () => _openResponseFile(context),
+           tooltip: 'Open File',   // 直接硬编码，避免 AppLocalizations 未定义 getter 错误
+),
         ],
       ),
       body: ListView(
