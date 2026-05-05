@@ -15,6 +15,7 @@ import 'package:fcm_box/l10n/app_localizations.dart';
 import 'package:fcm_box/locale_settings.dart';
 import 'package:fcm_box/db/notes_database.dart';
 import 'package:fcm_box/cached_network_image.dart';
+import 'package:fcm_box/utils/config.dart'; // 导入统一配置文件
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -149,7 +150,7 @@ class MyApp extends StatelessWidget {
                 }
 
                 return MaterialApp(
-                  title: 'FCM Box',
+                  title: AppConfig.appTitle, // 使用配置中的应用标题
                   locale: localeSettings.locale,
                   localizationsDelegates: const [
                     AppLocalizations.delegate,
@@ -172,7 +173,7 @@ class MyApp extends StatelessWidget {
                         settings.usePureDark ? Colors.black : null,
                     useMaterial3: true,
                   ),
-                  home: const MyHomePage(title: 'FCM Box'),
+                  home: const MyHomePage(title: AppConfig.appTitle), // 传入配置标题
                 );
               },
             );
@@ -205,8 +206,9 @@ class _MyHomePageState extends State<MyHomePage>
   int? _timeFilterStart;
   int? _timeFilterEnd;
 
-  static const String _cloudflareBackendHost = 'fcmbackend.wepayto.win';
-  static const String _firebaseBackendHost = 'fcmbox.firebase.wepayto.win/api';
+  // 使用 AppConfig 中的后端主机常量
+  static const String _cloudflareBackendHost = AppConfig.cloudflareBackendHost;
+  static const String _firebaseBackendHost = AppConfig.firebaseBackendHost;
   String? _backendIconAsset;
   bool _isLoading = false;
   final Set<String> _newlyAddedIds = {};
@@ -748,7 +750,7 @@ class _MyHomePageState extends State<MyHomePage>
                       Icon(Icons.local_fire_department_outlined),
                       const SizedBox(width: 16),
                       Text(
-                        localizations?.app_title ?? 'FCM Box',
+                        localizations?.app_title ?? AppConfig.appTitle,
                         style: TextStyle(
                           color: Theme.of(context)
                               .colorScheme

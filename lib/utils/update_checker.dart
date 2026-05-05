@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:fcm_box/utils/config.dart'; // 导入配置文件
 
 class UpdateChecker {
   final String repoOwner;
@@ -14,14 +15,12 @@ class UpdateChecker {
     required this.currentVersion,
   });
 
-  static Future<UpdateChecker> fromCurrentApp({
-    String repoOwner = 'xiaocongyu66',
-    String repoName = 'FCMBox',
-  }) async {
+  /// 从当前应用信息创建 UpdateChecker 实例
+  static Future<UpdateChecker> fromCurrentApp() async {
     final info = await PackageInfo.fromPlatform();
     return UpdateChecker(
-      repoOwner: repoOwner,
-      repoName: repoName,
+      repoOwner: AppConfig.githubOwner,
+      repoName: AppConfig.githubRepo,
       currentVersion: info.version,
     );
   }

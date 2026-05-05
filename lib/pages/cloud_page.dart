@@ -10,6 +10,7 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:fcm_box/l10n/app_localizations.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:fcm_box/utils/config.dart'; // 导入配置文件
 
 class CloudPage extends StatefulWidget {
   const CloudPage({super.key});
@@ -62,11 +63,12 @@ class _CloudPageState extends State<CloudPage> {
   }
 
   void _showConfigSheet() async {
-    final localizations = AppLocalizations.of(context); // 预先获取
+    final localizations = AppLocalizations.of(context);
     String tempBackendUrl = _backendUrl;
-    if (tempBackendUrl != 'https://fcmbackend.wepayto.win' &&
-        tempBackendUrl != 'https://fcmbox.firebase.wepayto.win/api') {
-      tempBackendUrl = 'https://fcmbackend.wepayto.win';
+    // 使用配置文件常量进行判断
+    if (tempBackendUrl != AppConfig.cloudflareDefaultUrl &&
+        tempBackendUrl != AppConfig.firebaseDefaultUrl) {
+      tempBackendUrl = AppConfig.cloudflareDefaultUrl; // 重置为默认 Cloudflare 地址
     }
     final authController = TextEditingController(text: _authKey);
     final ipController = TextEditingController(text: _ipAddress);
@@ -103,7 +105,7 @@ class _CloudPageState extends State<CloudPage> {
                         child: SegmentedButton<String>(
                           segments: [
                             ButtonSegment<String>(
-                              value: 'https://fcmbackend.wepayto.win',
+                              value: AppConfig.cloudflareDefaultUrl,
                               label: const Text('Cloudflare'),
                               icon: Image.asset(
                                 'assets/icon/Cloudflare.png',
@@ -112,7 +114,7 @@ class _CloudPageState extends State<CloudPage> {
                               ),
                             ),
                             ButtonSegment<String>(
-                              value: 'https://fcmbox.firebase.wepayto.win/api',
+                              value: AppConfig.firebaseDefaultUrl,
                               label: const Text('Firebase'),
                               icon: Image.asset(
                                 'assets/icon/Firebase.png',
@@ -211,7 +213,6 @@ class _CloudPageState extends State<CloudPage> {
   Future<void> _checkBackend() async {
     if (_backendUrl.isEmpty) return;
 
-    // Strip protocol if present
     String cleanUrl = _backendUrl.replaceAll(RegExp(r'^https?://'), '');
 
     setState(() {
@@ -231,7 +232,6 @@ class _CloudPageState extends State<CloudPage> {
     }
 
     try {
-      // 1. GET Root
       final response = await http.get(targetUri, headers: headers);
       final prefs = await SharedPreferences.getInstance();
       setState(() {
@@ -245,19 +245,16 @@ class _CloudPageState extends State<CloudPage> {
         String info =
             document.body?.querySelector('h1')?.text ?? 'The backend info';
 
-        // Update UI state
         setState(() {
           _backendTitle = title;
           _backendInfo = info;
           _isConnected = true;
         });
 
-        // Save to prefs
         await prefs.setString('cloud_title', title);
         await prefs.setString('cloud_version', info);
         await prefs.setBool('backend_active', true);
 
-        // 3. PUT Token
         await _registerToken(targetUri, headers);
       } else {
         throw Exception('Status code ${response.statusCode}');
@@ -265,7 +262,7 @@ class _CloudPageState extends State<CloudPage> {
     } catch (e) {
       debugPrint('Backend check failed: $e');
       setState(() {
-        // Keep old title/info if failed
+        // 发生错误时保留旧标题信息
       });
     } finally {
       setState(() {
@@ -327,7 +324,7 @@ class _CloudPageState extends State<CloudPage> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context); // 预先获取
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         title: Text(localizations?.cloud_appbar_title ?? 'Cloud'),
@@ -335,7 +332,6 @@ class _CloudPageState extends State<CloudPage> {
       body: ListView(
         children: [
           const SizedBox(height: 40),
-          // Dynamic Icon (Favicon or default)
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: CircleAvatar(
@@ -398,9 +394,7 @@ class _CloudPageState extends State<CloudPage> {
               localizations?.check_code_sample ?? 'View a code sample',
             ),
             onTap: () {
-              _launchUrl(
-                'https://github.com/XXXppp233/FCMBox/blob/main/backendsample/README.md',
-              );
+              _launchUrl(AppConfig.codeSampleUrl); // 使用配置常量
             },
           ),
 

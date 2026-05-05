@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../utils/update_checker.dart';
+import '../utils/config.dart'; // 导入统一配置文件
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -27,16 +28,16 @@ class _AboutPageState extends State<AboutPage> {
   Future<void> _loadVersion() async {
     final packageInfo = await PackageInfo.fromPlatform();
     setState(() {
-      _version = packageInfo.version;
+      _version = packageInfo.version.isNotEmpty
+          ? packageInfo.version
+          : AppConfig.appVersion; // 回退到配置文件中的版本
     });
   }
 
   Future<void> _checkUpdate() async {
     setState(() => _checkingUpdate = true);
-    final checker = await UpdateChecker.fromCurrentApp(
-      repoOwner: 'xiaocongyu66',
-      repoName: 'FCMBox',
-    );
+    // UpdateChecker.fromCurrentApp 已改为无参静态方法，从 AppConfig 读取配置
+    final checker = await UpdateChecker.fromCurrentApp();
     final info = await checker.check();
     setState(() {
       _updateInfo = info;
@@ -49,7 +50,7 @@ class _AboutPageState extends State<AboutPage> {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         Fluttertoast.showToast(
-          // 🔧 修复：改为方法调用，传入 url 参数
+          // 修复：could_not_launch 是方法而非 getter，需要传入 url 参数
           msg: AppLocalizations.of(context)?.could_not_launch(url) ??
               'Could not launch $url',
         );
@@ -77,7 +78,7 @@ class _AboutPageState extends State<AboutPage> {
           const SizedBox(height: 16),
           Center(
             child: Text(
-              AppLocalizations.of(context)?.app_title ?? 'FCM Box',
+              AppLocalizations.of(context)?.app_title ?? AppConfig.appTitle,
               style: Theme.of(context).textTheme.headlineMedium,
             ),
           ),
@@ -137,9 +138,9 @@ class _AboutPageState extends State<AboutPage> {
             title: Text(
               AppLocalizations.of(context)?.github_repo ?? 'GitHub Repository',
             ),
-            subtitle: const Text('https://github.com/XXXppp233/FCMBox'),
+            subtitle: Text(AppConfig.repoUrl), // 使用配置中的仓库 URL
             onTap: () {
-              _launchUrl('https://github.com/XXXppp233/FCMBox');
+              _launchUrl(AppConfig.repoUrl);
             },
           ),
           ListTile(
@@ -148,10 +149,9 @@ class _AboutPageState extends State<AboutPage> {
               AppLocalizations.of(context)?.view_documentation ??
                   'View the Documentation',
             ),
-            subtitle:
-                const Text('https://docs.wepayto.win/application/fcmbox/'),
+            subtitle: Text(AppConfig.documentationUrl),
             onTap: () {
-              _launchUrl('https://docs.wepayto.win/application/fcmbox/');
+              _launchUrl(AppConfig.documentationUrl);
             },
           ),
           ListTile(
@@ -160,7 +160,7 @@ class _AboutPageState extends State<AboutPage> {
               AppLocalizations.of(context)?.report_issue ?? 'Report an Issue',
             ),
             onTap: () {
-              _launchUrl('https://github.com/XXXppp233/FCMBox/issues');
+              _launchUrl(AppConfig.issuesUrl);
             },
           ),
         ],
