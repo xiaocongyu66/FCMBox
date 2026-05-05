@@ -27,6 +27,7 @@ import 'package:http/http.dart' as http;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:android_intent_plus/android_intent.dart';
+import 'package:fcm_box/pages/auth_page.dart';
 
 // Helper for caching
 Future<void> _cacheImage(String? url) async {
@@ -726,6 +727,35 @@ class _MyHomePageState extends State<MyHomePage>
     }
   }
 
+  Future<void> _showLoginPage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final backendUrl = prefs.getString('backend_url') ?? '';
+    final useHttps = prefs.getBool('backend_https') ?? true;
+    if (backendUrl.isEmpty) {
+      Fluttertoast.showToast(
+        msg: AppLocalizations.of(context)?.backend_not_configured ??
+            'Backend not configured',
+      );
+      return;
+    }
+    String cleanUrl = backendUrl.replaceAll(RegExp(r'^https?://'), '');
+    final fullUrl = (useHttps ? 'https://' : 'http://') + cleanUrl;
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AuthPage(
+          backendUrl: fullUrl,
+          onAuthSuccess: () {
+            _loadBackendIcon();
+            _refreshFromBackend();
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
@@ -774,6 +804,14 @@ class _MyHomePageState extends State<MyHomePage>
                   MaterialPageRoute(
                       builder: (context) => const CloudPage()),
                 ).then((_) => _loadBackendIcon());
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.login),
+              title: Text(localizations?.login ?? 'Login'),
+              onTap: () {
+                Navigator.pop(context);
+                _showLoginPage();
               },
             ),
             ListTile(
