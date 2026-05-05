@@ -15,7 +15,7 @@ import 'package:fcm_box/l10n/app_localizations.dart';
 import 'package:fcm_box/locale_settings.dart';
 import 'package:fcm_box/db/notes_database.dart';
 import 'package:fcm_box/cached_network_image.dart';
-import 'package:fcm_box/utils/config.dart'; // 导入统一配置文件
+import 'package:fcm_box/utils/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -151,7 +151,7 @@ class MyApp extends StatelessWidget {
                 }
 
                 return MaterialApp(
-                  title: AppConfig.appTitle, // 使用配置中的应用标题
+                  title: AppConfig.appTitle,
                   locale: localeSettings.locale,
                   localizationsDelegates: const [
                     AppLocalizations.delegate,
@@ -174,7 +174,7 @@ class MyApp extends StatelessWidget {
                         settings.usePureDark ? Colors.black : null,
                     useMaterial3: true,
                   ),
-                  home: const MyHomePage(title: AppConfig.appTitle), // 传入配置标题
+                  home: const MyHomePage(title: AppConfig.appTitle),
                 );
               },
             );
@@ -207,7 +207,6 @@ class _MyHomePageState extends State<MyHomePage>
   int? _timeFilterStart;
   int? _timeFilterEnd;
 
-  // 使用 AppConfig 中的后端主机常量
   static const String _cloudflareBackendHost = AppConfig.cloudflareBackendHost;
   static const String _firebaseBackendHost = AppConfig.firebaseBackendHost;
   String? _backendIconAsset;
@@ -727,32 +726,16 @@ class _MyHomePageState extends State<MyHomePage>
     }
   }
 
+  // ✅ 仅保留新版 _showLoginPage
   Future<void> _showLoginPage() async {
-  final backendUrl = await AppConfig.getBackendUrl();
-  if (!mounted) return;
-
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => AuthPage(
-        backendUrl: backendUrl,
-        onAuthSuccess: () {
-          _loadBackendIcon();
-          _refreshFromBackend();
-        },
-      ),
-    ),
-  );
-}
-    String cleanUrl = backendUrl.replaceAll(RegExp(r'^https?://'), '');
-    final fullUrl = (useHttps ? 'https://' : 'http://') + cleanUrl;
-
+    final backendUrl = await AppConfig.getBackendUrl();
     if (!mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AuthPage(
-          backendUrl: fullUrl,
+          backendUrl: backendUrl,
           onAuthSuccess: () {
             _loadBackendIcon();
             _refreshFromBackend();
