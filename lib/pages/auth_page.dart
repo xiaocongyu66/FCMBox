@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:cloudflare_turnstile/cloudflare_turnstile.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../l10n/app_localizations.dart';
-import '../utils/config.dart'; // 导入统一配置
+import '../utils/config.dart';
 
 class AuthPage extends StatefulWidget {
   final String backendUrl;
@@ -70,11 +70,11 @@ class _AuthPageState extends State<AuthPage> {
     try {
       final auth = _authController.text.trim();
       final body = <String, dynamic>{
-        'action': _isRegistering ? 'register' : 'check_auth',
+        'action': _isRegistering ? 'register' : 'login',
         'auth': auth,
       };
       if (_isRegistering && _turnstileToken != null) {
-        body['turnstile_token'] = _turnstileToken;
+        body['turnstileToken'] = _turnstileToken; // 修正为驼峰写法，与后端一致
         body['device'] = _deviceName ?? 'Unknown Device';
       }
 
@@ -82,7 +82,7 @@ class _AuthPageState extends State<AuthPage> {
         Uri.parse(widget.backendUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(body),
-      );
+      ).timeout(const Duration(seconds: 15)); // 增加超时保护
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final prefs = await SharedPreferences.getInstance();
@@ -157,7 +157,7 @@ class _AuthPageState extends State<AuthPage> {
                 ),
                 const SizedBox(height: 8),
                 CloudflareTurnstile(
-                  siteKey: AppConfig.turnstileSiteKey, // ✅ 修改点：使用配置中的真实密钥
+                  siteKey: AppConfig.turnstileSiteKey,
                   onTokenReceived: (token) {
                     setState(() => _turnstileToken = token);
                   },

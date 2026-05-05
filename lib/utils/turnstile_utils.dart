@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart'; // 提供 debugPrint
-import 'config.dart'; // 使用全局配置
+import '../utils/config.dart'; // 修正为相对路径，指向统一配置文件
 
 class TurnstileUtils {
-  // 直接使用全局后端 URL，无需外部传入
-  Future<bool> verify(String turnstileToken) async {
+  /// 向后端发起 Turnstile 验证
+  /// 使用全局配置的后端地址，不需要外部传参
+  static Future<bool> verify(String turnstileToken) async {
     try {
       final backendUrl = await AppConfig.getBackendUrl();
       final response = await http.post(
@@ -13,7 +14,7 @@ class TurnstileUtils {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'action': 'verify_turnstile',
-          'turnstile_token': turnstileToken,
+          'turnstileToken': turnstileToken,   // ✅ 与后端 Worker 字段名一致
         }),
       ).timeout(const Duration(seconds: 10)); // 超时保护
 
