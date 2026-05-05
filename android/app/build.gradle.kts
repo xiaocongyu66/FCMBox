@@ -17,6 +17,7 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.xiaocongyu66.FCMBox"
+    ndkVersion = "28.2.13676358"
     compileSdk = flutter.compileSdkVersion
     // ndkVersion = flutter.ndkVersion
 
