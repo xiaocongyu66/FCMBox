@@ -2,8 +2,8 @@ const ALTER_IMG = `https://img.icons8.com/clouds/100/fire-element.png`;
 
 export default {
     async fetch(request, env, ctx) {
-        const auth = request.headers.get('Authorization');
         const url = new URL(request.url);
+        const auth = request.headers.get('Authorization');
 
         // --- 公开页面 (无需 Auth) ---
         if (request.method === "GET") {
@@ -15,18 +15,24 @@ export default {
             return new Response(html, { headers: { "Content-Type": "text/html;charset=UTF-8" } });
         }
 
-        // --- 权限校验 (针对所有需要 Auth 的请求) ---
-        if (!auth) {
-            return new Response("Missing Authorization", { status: 401 });
-        }
-
         // --- POST 请求处理 ---
         if (request.method === "POST") {
-            const body = await request.json();
+            let body;
+            try {
+                body = await request.json();
+            } catch (e) {
+                return new Response("Invalid JSON", { status: 400 });
+            }
+
+            // 注册和登录不需要 Authorization
+            if (body.action !== "register" && body.action !== "login") {
+                if (!auth) {
+                    return new Response("Missing Authorization", { status: 401 });
+                }
+            }
 
             // ---------- 1. 注册接口 ----------
             if (body.action === "register") {
-                // 注册必然需要 Turnstile Token 来防滥用
                 const { turnstileToken } = body;
                 if (!turnstileToken) {
                     return new Response("Turnstile token required", { status: 400 });
@@ -37,16 +43,19 @@ export default {
                     return new Response("Turnstile verification failed", { status: 403 });
                 }
 
-                // 检查用户是否已存在
-                const existing = await env.DB.prepare('SELECT authorization FROM users WHERE authorization = ?').bind(auth).first();
+                // 注册时使用 body.auth 作为授权密钥（用户自己设置）
+                const newAuth = body.auth || auth; // 如果提供了 Authorization 头也可以用，但注册时一般应使用 body.auth
+                if (!newAuth) {
+                    return new Response("Authorization key required", { status: 400 });
+                }
+                const existing = await env.DB.prepare('SELECT authorization FROM users WHERE authorization = ?').bind(newAuth).first();
                 if (existing) {
                     return new Response("User already exists", { status: 409 });
                 }
 
-                // 创建新用户
                 await env.DB.prepare('INSERT INTO users (authorization, tokens, devices) VALUES (?, ?, ?)')
-                    .bind(auth, '', '').run();
-                return new Response(JSON.stringify({ success: true, authorization: auth }), {
+                    .bind(newAuth, '', '').run();
+                return new Response(JSON.stringify({ success: true, authorization: newAuth }), {
                     status: 201,
                     headers: { "Content-Type": "application/json" }
                 });
@@ -54,7 +63,12 @@ export default {
 
             // ---------- 2. 登录/校验接口 ----------
             if (body.action === "login") {
-                const user = await env.DB.prepare('SELECT authorization FROM users WHERE authorization = ?').bind(auth).first();
+                // 登录时也要提供 auth 密钥进行校验，可从 header 或 body 获取
+                const loginAuth = auth || body.auth;
+                if (!loginAuth) {
+                    return new Response("Authorization key required", { status: 400 });
+                }
+                const user = await env.DB.prepare('SELECT authorization FROM users WHERE authorization = ?').bind(loginAuth).first();
                 if (user) {
                     return new Response(JSON.stringify({ success: true }), { headers: { "Content-Type": "application/json" } });
                 } else {
@@ -62,20 +76,11 @@ export default {
                 }
             }
 
-            // ---------- 3. 发送消息 (保留原逻辑) ----------
+            // ---------- 3. 发送消息 (需要 auth) ----------
             if (body.action === "message") {
-                const { data, overview = "Null Overview", service = "Null Service", image = null, turnstileToken } = body;
+                const { data, overview = "Null Overview", service = "Null Service", image = null } = body;
 
-                // 如果你希望在发消息时也做二次验证，可以取消下面的注释
-                // if (turnstileToken) {
-                //     const ip = request.headers.get('CF-Connecting-IP');
-                //     const isHuman = await verifyTurnstile(turnstileToken, env.TURNSTILE_SECRET_KEY, ip);
-                //     if (!isHuman) {
-                //         return new Response("Turnstile verification failed", { status: 403 });
-                //     }
-                // }
-
-                // 1. 写入 D1
+                // 写入 D1
                 await env.DB.prepare(
                     'INSERT INTO main (timestamp, data, service, overview, image, authorization) VALUES (?, ?, ?, ?, ?, ?)'
                 ).bind(
@@ -87,7 +92,7 @@ export default {
                     auth
                 ).run();
 
-                // 2. FCM 推送逻辑
+                // FCM 推送逻辑
                 const saJson = await env.KV.get('service-account');
                 if (saJson) {
                     const serviceAccount = JSON.parse(saJson);
@@ -99,7 +104,7 @@ export default {
                             return await FCMSender(serviceAccount, token, overview, service, image || ALTER_IMG);
                         });
                         const results = await Promise.allSettled(tasks);
-                        
+
                         // 自动清理失效 token
                         const invalidTokens = [];
                         tokenList.forEach((token, index) => {
@@ -117,7 +122,7 @@ export default {
                 return new Response("success");
             }
 
-            // ---------- 4. 查询日志 (保留原逻辑) ----------
+            // ---------- 4. 查询日志 (需要 auth) ----------
             if (body.action === "get") {
                 const quantity = body.quantity || 5;
                 const service = body.service || null;
@@ -134,11 +139,22 @@ export default {
                 const logs = await env.DB.prepare(query).bind(...params).all();
                 return new Response(JSON.stringify(logs.results), { headers: { "Content-Type": "application/json" } });
             }
+
+            return new Response("Invalid action", { status: 400 });
         }
 
         // --- PUT 请求处理 (注册/更新 Token) ---
         if (request.method === "PUT") {
-            const body = await request.json();
+            if (!auth) {
+                return new Response("Missing Authorization", { status: 401 });
+            }
+
+            let body;
+            try {
+                body = await request.json();
+            } catch (e) {
+                return new Response("Invalid JSON", { status: 400 });
+            }
             const { token, device } = body;
 
             if (!token || !device) return new Response("Invalid Payload", { status: 400 });
@@ -182,7 +198,7 @@ async function verifyTurnstile(token, secret, ip) {
             body: formData,
         });
         const outcome = await result.json();
-        return outcome.success; // true 或 false
+        return outcome.success;
     } catch (e) {
         console.error('Turnstile verification error:', e);
         return false;
